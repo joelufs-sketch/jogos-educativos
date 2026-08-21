@@ -288,7 +288,6 @@
             database.ref('games/' + code).on('value', gSnap => {
                 const data = gSnap.val();
                 if(data.status === 'playing') {
-                    document.getElementById('feedback-div').classList.add('hidden');
                     if (data.currentQ !== activeQuestionIndex) startStudentGame(data.currentQ);
                 }
                 else if(data.status === 'finished') {
@@ -320,8 +319,10 @@
                 const isCorrect = (opt === q.a);
                 const scoreChange = isCorrect ? 10 : 0;
                 const feedbackDiv = document.getElementById('feedback-div');
-                feedbackDiv.className = "feedback-card " + (isCorrect ? "correct" : "wrong");
-                feedbackDiv.innerHTML = "<span class='feedback-face' aria-label='" + (isCorrect ? "Rosto feliz: resposta correta" : "Rosto triste: resposta errada") + "'>" + (isCorrect ? "🙂" : "😞") + "</span>" + (isCorrect ? "ACERTOU! +10 pontos!" : "ERROU...") + "<br><small>" + q.info + "</small>";
+                const feedbackCard = document.createElement('div');
+                feedbackCard.className = "feedback-card " + (isCorrect ? "correct" : "wrong");
+                feedbackCard.innerHTML = "<span class='feedback-face' aria-label='" + (isCorrect ? "Rosto feliz: resposta correta" : "Rosto triste: resposta errada") + "'>" + (isCorrect ? "🙂" : "😞") + "</span>" + (isCorrect ? "ACERTOU! +10 pontos!" : "ERROU...") + "<br><small>" + q.info + "</small>";
+                feedbackDiv.appendChild(feedbackCard);
                 feedbackDiv.classList.remove('hidden');
                 container.innerHTML = "<p style='padding:20px; color:#666'>Resposta enviada! Aguarde o professor seguir...</p>";
                 database.ref('games/' + gameCodeGlobal + '/players/' + playerKey).update({
