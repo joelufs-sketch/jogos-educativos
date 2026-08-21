@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎭 Folclore e Matemática - Festa Junina 🎭</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #ef4444 0%, #f97316 50%, #fbbf24 100%);
+      min-height: 100vh;
+      text-align: center;
+      color: #fff;
+      padding: 20px;
+    }
+    .hidden { display: none !important; }
+    .container {
+      margin-top: 30px;
+      background: rgba(0,0,0,0.8);
+      padding: 30px;
+      border-radius: 20px;
+      display: inline-block;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    h1 { font-size: 2.5rem; margin-bottom: 10px; color: #fbbf24; text-shadow: 2px 2px 4px #000; }
+    h2 { font-size: 1.8rem; margin-bottom: 20px; color: #fff; }
+    h3 { font-size: 1.3rem; margin: 15px 0 10px 0; }
+    p { font-size: 1.1rem; margin: 10px 0; }
+    input, button, select {
+      padding: 12px;
+      margin: 8px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      width: calc(100% - 20px);
+      max-width: 300px;
+    }
+    button {
+      background: #f39c12;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    button:hover { 
+      background: #e67e22;
+      transform: scale(1.05);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: scale(1);
+    }
+    .code-display { 
+      font-size: 3rem; 
+      font-weight: bold; 
+      color: #fbbf24; 
+      margin: 20px 0; 
+      letter-spacing: 5px;
+      background: rgba(0,0,0,0.5);
+      padding: 20px;
+      border-radius: 10px;
+    }
+    .player-list { 
+      background: rgba(255,255,255,0.1); 
+      padding: 15px; 
+      border-radius: 8px; 
+      margin: 15px 0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .player-item {
+      padding: 8px;
+      margin: 5px 0;
+      background: rgba(255,255,255,0.2);
+      border-radius: 5px;
+    }
+    .question-image {
+      width: 100%;
+      max-width: 400px;
+      height: 250px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin: 20px 0;
+      border: 3px solid #fbbf24;
+    }
+    .option-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .option-btn { 
+      background: rgba(255,255,255,0.2); 
+      border: 2px solid #fff; 
+      color: white; 
+      cursor: pointer; 
+      padding: 15px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+      width: 100%;
+      margin: 0;
+    }
+    .option-btn:hover:not(:disabled) { 
+      background: #fbbf24; 
+      color: #000;
+      transform: scale(1.05);
+    }
+    .option-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    .status { 
+      padding: 15px; 
+      border-radius: 10px; 
+      font-weight: bold; 
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+    }
+    .waiting { background: #3498db; }
+    .playing { background: #27ae60; }
+    .finished { background: #9b59b6; }
+    .timer {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #fbbf24;
+      margin: 20px 0;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    .leaderboard {
+      background: rgba(0,0,0,0.3);
+      padding: 20px;
+      border-radius: 15px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    .leaderboard-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.1);
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+    .medal {
+      font-size: 1.5rem;
+      margin-right: 10px;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f39c12, #fbbf24);
+      transition: width 0.3s ease;
+    }
+    .question-info {
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-weight: bold;
+    }
+    .answer-feedback {
+      min-height: 48px;
+      font-size: 1.4rem;
+      font-weight: bold;
+      margin: 12px 0;
+    }
+    .feedback-pop {
+      animation: feedbackPop 0.55s ease-out;
+    }
+    @keyframes feedbackPop {
+      0% { transform: scale(0.6) rotate(-8deg); opacity: 0; }
+      70% { transform: scale(1.15) rotate(4deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+    .answer-state {
+      font-size: 0.95rem;
+      color: #fef3c7;
+    }
+    .mt-4 { margin-top: 20px; }
+    .mb-4 { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <!-- TELA INICIAL -->
+  <div id="start-screen" class="container">
+    <h1>🎭 Folclore e Matemática 🎭</h1>
+    <h2>Festa Junina Interativa</h2>
+    <p style="font-size: 1.3rem; color: #fbbf24;">Descubra a matemática no folclore brasileiro!</p>
+    <div style="margin-top: 30px;">
+      <div style="font-size: 1.2rem; color: #fff; margin: 20px 0;">
+        <p>🎪 Geometria em Brinquedos Populares</p>
+        <p>📊 Probabilidade em Jogos</p>
+        <p>🍽️ Proporções em Receitas</p>
+      </div>
+      <button onclick="showProfessorLogin()" style="background:#e74c3c; font-size: 1.1rem; padding: 15px; margin-top: 20px;">👨‍🏫 Sou Professor</button><br>
+      <button onclick="showStudentLogin()" style="background:#3498db; font-size: 1.1rem; padding: 15px; margin-top: 10px;">👨‍🎓 Sou Aluno</button>
+    </div>
+  </div>
+  <!-- LOGIN PROFESSOR -->
+  <div id="professor-login-screen" class="container hidden">
+    <h2>Acesso do Professor</h2>
+    <p>Digite a senha para acessar o painel</p>
+    <input type="password" id="prof-password" placeholder="Senha (professor123)">
+    <button onclick="loginProfessor()" style="background:#27ae60; padding: 15px; font-size: 1.1rem;">🔓 Entrar</button>
+    <button onclick="backToMenu()" style="background:#7f8c8d; margin-top: 10px;">↩️ Voltar</button>
+  </div>
+  <!-- PAINEL DO PROFESSOR -->
+  <div id="professor-panel" class="container hidden">
+    <h2>👨‍🏫 Painel do Professor</h2>
+    <p>Compartilhe o código com os alunos:</p>
+    <div class="code-display" id="game-code">------</div>
+    
+    <div class="player-list">
+      <h3>👥 Alunos Conectados</h3>
+      <div id="connected-players">Aguardando...</div>
+    </div>
+    <button id="btn-start-game" onclick="startGameSession()" style="background:#27ae60; font-size: 1.2rem; padding: 15px;">🚀 Iniciar Partida</button>
+    
+    <div id="prof-question-div" class="hidden mt-4">
+      <div class="question-info">Questão <span id="prof-question-number">1</span>/10</div>
+      <img id="prof-question-image" class="question-image" src="" alt="Imagem da pergunta">
+      <p id="prof-question-text" style="font-size: 1.3rem; font-weight: bold;"></p>
+      <div class="leaderboard">
+        <h3>📊 Placar em Tempo Real</h3>
+        <div id="prof-leaderboard"></div>
+      </div>
+      <button id="btn-next-question" onclick="nextQuestion()" style="background:#f39c12; font-size: 1.1rem; padding: 15px; margin-top: 20px;">➡️ Próxima Questão</button>
+    </div>
+  </div>
+  <!-- LOGIN ALUNO -->
+  <div id="student-login-screen" class="container hidden">
+    <h2>Entrar na Partida</h2>
+    <p>Digite o código fornecido pelo professor</p>
+    <input type="text" id="game-code-input" placeholder="Código (6 dígitos)">
+    <input type="text" id="student-name" placeholder="Seu Nome">
+    <input type="email" id="student-email" placeholder="Seu Email">
+    <button onclick="joinGame()" style="background:#3498db; padding: 15px; font-size: 1.1rem;">✓ Entrar no Arraial</button>
+    <button onclick="backToMenu()" style="background:#7f8c8d; margin-top: 10px;">↩️ Voltar</button>
+  </div>
+  <!-- TELA DE JOGO ALUNO -->
+  <div id="student-game-screen" class="container hidden">
+    <div id="game-status" class="status waiting">⏳ Aguardando Professor...</div>
+    
+    <div id="question-div" class="hidden">
+      <div class="question-info">Questão <span id="question-number">1</span>/10 | Pontos: <span id="current-score">0</span></div>
+      
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <img id="question-image" class="question-image" src="" alt="Imagem da pergunta">
+      
+      <div id="timer" class="timer">60</div>
+      
+      <p id="current-question" style="font-size: 1.3rem; font-weight: bold; margin: 20px 0;"></p>
+      
+      <div class="option-container" id="options-container"></div>
+      <div id="answer-feedback" class="answer-feedback" aria-live="polite"></div>
+      <div class="leaderboard">
+        <h3>📊 Placar</h3>
+        <div id="live-scores"></div>
+      </div>
+    </div>
+    <div id="waiting-msg">
+      <p style="font-size: 1.4rem; margin: 30px 0;">⏳ O professor iniciará o jogo em breve!</p>
+      <div class="leaderboard">
+        <h3>📊 Jogadores Conectados</h3>
+        <div id="connected-players-waiting"></div>
+      </div>
+    </div>
+  </div>
+  <!-- TELA FINAL -->
+  <div id="final-screen" class="container hidden">
+    <h1>🏆 Jogo Finalizado! 🏆</h1>
+    <div style="margin: 30px 0;">
+      <p style="font-size: 1.3rem; color: #fbbf24;">Parabéns a todos os participantes!</p>
+    </div>
+    <div class="leaderboard">
+      <h2>🏅 Ranking Final</h2>
+      <div id="final-leaderboard"></div>
+    </div>
+    <button onclick="backToMenu()" style="background:#f39c12; padding: 15px; font-size: 1.1rem; margin-top: 20px;">🏠 Voltar ao Menu</button>
+  </div>
+  <script>
+    // Configuração Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyB-fzXlO-PofqHCa0L7p14Y-YSOvAwG-WM",
+      authDomain: "kahootjogosaojoao2.firebaseapp.com",
+      projectId: "kahootjogosaojoao2",
+      storageBucket: "kahootjogosaojoao2.firebasestorage.app",
+      messagingSenderId: "185213421",
+      appId: "1:185213421:web:29179556e809f3a00287e4"
+    };
+    let database = null;
+    let gameCode = "";
+    let userRole = null;
+    let studentName = "";
+    let currentQuestionIndex = 0;
+    let timerInterval = null;
+    let answeredQuestionIndex = -1;
+    function makeIllustration(emoji, title, detail) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+        <rect width="800" height="450" rx="24" fill="#fff7ed"/>
+        <circle cx="680" cy="90" r="46" fill="#fbbf24" opacity=".45"/>
+        <path d="M0 380 Q170 320 340 380 T800 365 V450 H0Z" fill="#fed7aa"/>
+        <text x="400" y="105" text-anchor="middle" font-family="Arial" font-size="52">${emoji}</text>
+        <text x="400" y="185" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="#7c2d12">${title}</text>
+        <text x="400" y="235" text-anchor="middle" font-family="Arial" font-size="24" fill="#9a3412">${detail}</text>
+        <path d="M120 330 H680" stroke="#ea580c" stroke-width="8" stroke-linecap="round"/>
+        <circle cx="170" cy="330" r="12" fill="#16a34a"/><circle cx="630" cy="330" r="12" fill="#16a34a"/>
+      </svg>`;
+      return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+    }
+    const questionImages = {
+      piao: makeIllustration('🌀', 'Pião girando', 'cone, altura e raio'),
+      pipaLosango: makeIllustration('◆', 'Pipa em losango', 'lados de 40 cm'),
+      papagaio: makeIllustration('🪁', 'Pipa papagaio', 'diagonal maior: 50 cm | menor: 40 cm'),
+      amarelinha: makeIllustration('🟨', 'Amarelinha', 'quadrados de 30 cm'),
+      dado: makeIllustration('⚄', 'Dado', 'faces com valores de 1 a 6'),
+      boloMilho: makeIllustration('🍰', 'Bolo de milho', '2 xícaras de milho + 4 de farinha'),
+      bolo: makeIllustration('🎂', 'Bolo de festa', '3 bolos para presentear'),
+      barracas: makeIllustration('⛺', 'Barracas de comida', '5 barracas no arraial'),
+      frigorifico: makeIllustration('🥩', 'Frigorífico de carne', 'carne para a festa'),
+      pipa: makeIllustration('🪁', 'Pipa', 'brincadeira para 7 crianças')
+    };
+    // Questões com imagens
+    const questions = [
+      {
+        q: "Um pião tem formato de cone. Se sua altura é 8cm e o raio da base é 3cm, qual é aproximadamente seu volume?",
+        image: questionImages.piao,
+        options: ["75 cm³", "201 cm³", "48 cm³", "150 cm³"],
+        a: 1,
+        topic: "Geometria - Pião"
+      },
+      {
+        q: "Uma pipa quadrada tem lados de 40cm. Qual é sua área total?",
+        image: questionImages.pipaLosango,
+        options: ["1600 cm²", "160 cm²", "800 cm²", "3200 cm²"],
+        a: 0,
+        topic: "Geometria - Pipa"
+      },
+      {
+        q: "Um papagaio (pipa) é feito com duas varas: uma vertical de 50cm e uma horizontal de 40cm. Qual é a área?",
+        image: questionImages.papagaio,
+        options: ["1000 cm²", "500 cm²", "2000 cm²", "250 cm²"],
+        a: 1,
+        topic: "Geometria - Papagaio"
+      },
+      {
+        q: "Uma amarelinha tem 8 quadrados. Se cada quadrado tem 30cm de lado, qual é a altura total?",
+        image: questionImages.amarelinha,
+        options: ["240 cm", "30 cm", "120 cm", "480 cm"],
+        a: 0,
+        topic: "Medidas - Amarelinha"
+      },
+      {
+        q: "Em um jogo de dados, qual é a probabilidade de sair um número par em um dado de 6 faces?",
+        image: questionImages.dado,
+        options: ["50%", "25%", "33%", "75%"],
+        a: 0,
+        topic: "Probabilidade"
+      },
+      {
+        q: "Uma receita de bolo de milho leva 2 xícaras de milho para 4 xícaras de farinha. Se você usar 6 xícaras de milho, quantas de farinha precisa?",
+        image: questionImages.boloMilho,
+        options: ["12 xícaras", "8 xícaras", "6 xícaras", "10 xícaras"],
+        a: 0,
+        topic: "Proporção - Receita"
+      },
+      {
+        q: "Um bolo de festa junina custa R$60. Se você dar 3 bolos de presente em uma festa, qual é o custo total?",
+        image: questionImages.bolo,
+        options: ["R$180", "R$60", "R$120", "R$240"],
+        a: 0,
+        topic: "Multiplicação - Receita"
+      },
+      {
+        q: "Em uma festa junina, há 5 barracas de comida. Se cada barraca vende 24 pamonhas por hora, quantas são vendidas em 2 horas?",
+        image: questionImages.barracas,
+        options: ["240 pamonhas", "120 pamonhas", "480 pamonhas", "360 pamonhas"],
+        a: 2,
+        topic: "Multiplicação - Festa"
+      },
+      {
+        q: "Se um quilo de carne para festa custa R$45 e você precisa de 5 quilos, qual é o valor total?",
+        image: questionImages.frigorifico,
+        options: ["R$225", "R$450", "R$180", "R$90"],
+        a: 0,
+        topic: "Multiplicação - Proporção"
+      },
+      {
+        q: "Uma pipa custa R$12 e você quer comprar para 7 crianças. Qual é o custo total?",
+        image: questionImages.pipa,
+        options: ["R$84", "R$60", "R$120", "R$100"],
+        a: 0,
+        topic: "Multiplicação - Pipa"
+      }
+    ];
+    // Inicializar Firebase
+    try {
+      firebase.initializeApp(firebaseConfig);
+      database = firebase.database();
+      console.log("Firebase iniciado");
+    } catch (e) {
+      console.warn("Firebase não disponível:", e);
+    }
+    // Funções de Navegação
+    function backToMenu() {
+      hideAll();
+      document.getElementById('start-screen').classList.remove('hidden');
+      currentQuestionIndex = 0;
+      if (timerInterval) clearInterval(timerInterval);
+    }
+    function showProfessorLogin() {
+      hideAll();
+      document.getElementById('professor-login-screen').classList.remove('hidden');
+    }
+    function showStudentLogin() {
+      hideAll();
+      document.getElementById('student-login-screen').classList.remove('hidden');
+    }
+    function hideAll() {
+      document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
+    }
+    // Lógica Professor
+    function loginProfessor() {
+      const pass = document.getElementById('prof-password').value;
+      if (pass === 'professor123') {
+        userRole = 'professor';
+        hideAll();
+        document.getElementById('professor-panel').classList.remove('hidden');
+        gameCode = Math.random().toString(36).substr(2, 6).toUpperCase();
+        document.getElementById('game-code').innerText = gameCode;
+        
+        if (database) {
+          database.ref('games/' + gameCode).set({
+            status: 'waiting',
+            currentQ: -1,
+            totalQuestions: questions.length
+          });
+          database.ref('games/' + gameCode + '/players').on('value', snap => {
+            const players = snap.val() || {};
+            const playersList = Object.keys(players)
+              .map(k => players[k].name)
+              .filter(name => name);
+            
+            document.getElementById('connected-players').innerHTML = 
+              playersList.length > 0 
+                ? playersList.map(name => `<div class="player-item">✓ ${name}</div>`).join('')
+                : '<p style="color: #999;">Nenhum aluno conectado</p>';
+          });
+          // Escutar atualizações do placar
+          database.ref('games/' + gameCode + '/players').on('value', snap => {
+            updateProfessorLeaderboard();
+          });
+        }
+      } else {
+        alert('Senha incorreta!');
+      }
+    }
+    function startGameSession() {
+      currentQuestionIndex = 0;
+      if (database) {
+        database.ref('games/' + gameCode).update({
+          status: 'playing',
+          currentQ: 0
+        });
+      }
+      document.getElementById('btn-start-game').classList.add('hidden');
+      showProfessorQuestion();
+    }
+    function showProfessorQuestion() {
+      if (currentQuestionIndex >= questions.length) {
+        finishGame();
+        return;
+      }
+      const q = questions[currentQuestionIndex];
+      document.getElementById('prof-question-div').classList.remove('hidden');
+      document.getElementById('prof-question-number').innerText = (currentQuestionIndex + 1);
+      document.getElementById('prof-question-image').src = q.image;
+      document.getElementById('prof-question-text').innerText = q.q;
+      if (database) {
+        database.ref('games/' + gameCode).update({
+          currentQ: currentQuestionIndex,
+          questionStartedAt: firebase.database.ServerValue.TIMESTAMP,
+          question: {
+            text: q.q,
+            image: q.image,
+            options: q.options
+          }
+        });
+      }
+      updateProfessorLeaderboard();
+    }
+    function updateProfessorLeaderboard() {
+      if (!database) return;
+      database.ref('games/' + gameCode + '/players').once('value', snap => {
+        const players = snap.val() || {};
+        const playersList = Object.keys(players)
+          .map(k => ({
+            name: players[k].name,
+            score: players[k].score || 0,
+            answered: Boolean(players[k].answers && players[k].answers[currentQuestionIndex])
+          }))
+          .sort((a, b) => b.score - a.score);
+        const medals = ['🥇', '🥈', '🥉'];
+        const html = playersList.map((p, i) => `
+          <div class="leaderboard-item">
+            <span class="medal">${i < 3 ? medals[i] : i + 1}. ${p.name}</span>
+            <span>${p.score} pts <small class="answer-state">${p.answered ? '✅ respondeu' : '⏳ aguardando'}</small></span>
+          </div>
+        `).join('');
+        document.getElementById('prof-leaderboard').innerHTML = html || '<p style="color: #999;">Nenhum jogador</p>';
+      });
+    }
+    function nextQuestion() {
+      currentQuestionIndex++;
+      showProfessorQuestion();
+    }
+    function finishGame() {
+      if (database) {
+        database.ref('games/' + gameCode).update({
+          status: 'finished'
+        });
+      }
+      hideAll();
+      document.getElementById('final-screen').classList.remove('hidden');
+      showFinalRanking();
+    }
+    function showFinalRanking() {
+      if (!database) return;
+      database.ref('games/' + gameCode + '/players').once('value', snap => {
+        const players = snap.val() || {};
+        const playersList = Object.keys(players)
+          .map(k => ({
+            name: players[k].name,
+            score: players[k].score || 0
+          }))
+          .sort((a, b) => b.score - a.score);
+        const medals = ['🥇', '🥈', '🥉'];
+        const html = playersList.map((p, i) => `
+          <div class="leaderboard-item" style="animation: slideIn ${0.3 + i * 0.2}s ease-out;">
+            <span class="medal">${i < 3 ? medals[i] : i + 1}. ${p.name}</span>
+            <span>${p.score} pts</span>
+          </div>
+        `).join('');
+        document.getElementById('final-leaderboard').innerHTML = html || '<p style="color: #999;">Nenhum jogador</p>';
+      });
+    }
+    // Lógica Aluno
+    function joinGame() {
+      const code = document.getElementById('game-code-input').value.toUpperCase().trim();
+      const name = document.getElementById('student-name').value.trim();
+      const email = document.getElementById('student-email').value.trim();
+      if (!name || !code || !email) {
+        alert('Preencha todos os dados!');
+        return;
+      }
+      if (code.length !== 6) {
+        alert('Código deve ter 6 dígitos!');
+        return;
+      }
+      userRole = 'student';
+      studentName = name;
+      gameCode = code;
+      if (database) {
+        database.ref('games/' + code + '/players/' + name).set({
+          name,
+          email,
+          score: 0,
+          answers: {},
+          joinedAt: new Date().getTime()
+        });
+        // Escutar status do jogo
+        database.ref('games/' + code).on('value', snap => {
+          const gameData = snap.val();
+          if (!gameData) {
+            alert('Código inválido!');
+            backToMenu();
+            return;
+          }
+          if (gameData.status === 'playing') {
+            startStudentGame(gameData.currentQ, gameData.question);
+          } else if (gameData.status === 'finished') {
+            showStudentFinalRanking();
+          }
+        });
+        hideAll();
+        document.getElementById('student-game-screen').classList.remove('hidden');
+        // Atualizar lista de conectados
+        database.ref('games/' + code + '/players').on('value', snap => {
+          const players = snap.val() || {};
+          const names = Object.keys(players).map(k => players[k].name).filter(n => n);
+          document.getElementById('connected-players-waiting').innerHTML = names
+            .map(name => `<div class="player-item">✓ ${name}</div>`)
+            .join('') || '<p style="color: #999;">Você é o primeiro!</p>';
+        });
+        // Escutar placar
+        database.ref('games/' + code + '/players').on('value', snap => {
+          updateStudentLeaderboard();
+        });
+      } else {
+        alert('Firebase não disponível!');
+      }
+    }
+    function startStudentGame(qIndex, questionData) {
+      document.getElementById('waiting-msg').classList.add('hidden');
+      document.getElementById('question-div').classList.remove('hidden');
+      document.getElementById('game-status').classList.remove('waiting');
+      document.getElementById('game-status').classList.add('playing');
+      document.getElementById('game-status').innerText = '🎮 Jogo em Andamento!';
+      if (qIndex >= questions.length) {
+        showStudentFinalRanking();
+        return;
+      }
+      currentQuestionIndex = qIndex;
+      answeredQuestionIndex = -1;
+      const q = questions[qIndex];
+      document.getElementById('question-number').innerText = (qIndex + 1);
+      document.getElementById('question-image').src = q.image;
+      document.getElementById('current-question').innerText = q.q;
+      document.getElementById('answer-feedback').innerText = '';
+      document.getElementById('answer-feedback').className = 'answer-feedback';
+      document.getElementById('progress-fill').style.width = ((qIndex + 1) / questions.length * 100) + '%';
+      // Renderizar opções
+      const container = document.getElementById('options-container');
+      container.innerHTML = '';
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = opt;
+        btn.onclick = () => selectAnswer(idx, q.a);
+        container.appendChild(btn);
+      });
+      startTimer();
+      updateStudentLeaderboard();
+    }
+    function selectAnswer(selectedIndex, correctIndex) {
+      if (answeredQuestionIndex === currentQuestionIndex) return;
+      answeredQuestionIndex = currentQuestionIndex;
+      const isCorrect = selectedIndex === correctIndex;
+      // Desabilitar todos os botões
+      document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
+      if (isCorrect) {
+        // Adicionar pontos
+        if (database) {
+          database.ref('games/' + gameCode + '/players/' + studentName).update({
+            score: firebase.database.ServerValue.increment(10),
+            ['answers/' + currentQuestionIndex]: {
+              selected: selectedIndex,
+              correct: true,
+              answeredAt: firebase.database.ServerValue.TIMESTAMP
+            }
+          });
+        }
+        showAnswer('🎉 ACERTOU! +10 pontos!', true);
+      } else {
+        if (database) {
+          database.ref('games/' + gameCode + '/players/' + studentName + '/answers/' + currentQuestionIndex).set({
+            selected: selectedIndex,
+            correct: false,
+            answeredAt: firebase.database.ServerValue.TIMESTAMP
+          });
+        }
+        showAnswer('😢 Errou! Resposta correta: ' + questions[currentQuestionIndex].options[correctIndex], false);
+      }
+    }
+    function showAnswer(message, isCorrect) {
+      clearTimeout(timerInterval);
+      const statusEl = document.getElementById('game-status');
+      statusEl.innerText = message;
+      statusEl.className = 'status ' + (isCorrect ? 'playing' : 'waiting');
+      const feedbackEl = document.getElementById('answer-feedback');
+      feedbackEl.innerText = message;
+      feedbackEl.className = 'answer-feedback feedback-pop';
+    }
+    function startTimer() {
+      clearTimeout(timerInterval);
+      let timeLeft = 60;
+      document.getElementById('timer').innerText = timeLeft;
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').innerText = timeLeft;
+        if (timeLeft <= 0) {
+          clearTimeout(timerInterval);
+          answeredQuestionIndex = currentQuestionIndex;
+          document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
+          if (database) {
+            database.ref('games/' + gameCode + '/players/' + studentName + '/answers/' + currentQuestionIndex).set({
+              selected: null,
+              correct: false,
+              timedOut: true,
+              answeredAt: firebase.database.ServerValue.TIMESTAMP
+            });
+          }
+          showAnswer('😢 Tempo esgotado!', false);
+        }
+      }, 1000);
+    }
+    function updateStudentLeaderboard() {
+      if (!database) return;
+      database.ref('games/' + gameCode + '/players').once('value', snap => {
+        const players = snap.val() || {};
+        const playersList = Object.keys(players)
+          .map(k => ({
+            name: players[k].name,
+            score: players[k].score || 0
+          }))
+          .sort((a, b) => b.score - a.score);
+        const medals = ['🥇', '🥈', '🥉'];
+        const html = playersList.map((p, i) => `
+          <div class="leaderboard-item">
+            <span class="medal">${i < 3 ? medals[i] : i + 1}. ${p.name}</span>
+            <span>${p.score} pts</span>
+          </div>
+        `).join('');
+        document.getElementById('live-scores').innerHTML = html || '<p style="color: #999;">Carregando...</p>';
+      });
+    }
+    function showStudentFinalRanking() {
+      if (timerInterval) clearTimeout(timerInterval);
+      document.getElementById('question-div').classList.add('hidden');
+      document.getElementById('game-status').classList.remove('hidden');
+      document.getElementById('game-status').classList.add('finished');
+      document.getElementById('game-status').innerText = '🏆 Jogo Finalizado!';
+      hideAll();
+      document.getElementById('final-screen').classList.remove('hidden');
+      showFinalRanking();
+    }
+    function showFinalRanking() {
+      if (!database) return;
+      database.ref('games/' + gameCode + '/players').once('value', snap => {
+        const players = snap.val() || {};
+        const playersList = Object.keys(players)
+          .map(k => ({
+            name: players[k].name,
+            score: players[k].score || 0
+          }))
+          .sort((a, b) => b.score - a.score);
+        const medals = ['🥇', '🥈', '🥉'];
+        const html = playersList.map((p, i) => `
+          <div class="leaderboard-item" style="animation: slideIn ${0.3 + i * 0.2}s ease-out;">
+            <span class="medal">${i < 3 ? medals[i] : i + 1}. ${p.name}</span>
+            <span>${p.score} pts</span>
+          </div>
+        `).join('');
+        document.getElementById('final-leaderboard').innerHTML = html || '<p style="color: #999;">Nenhum jogador</p>';
+      });
+    }
+  </script>
+</body>
+</html>

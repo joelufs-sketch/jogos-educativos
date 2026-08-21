@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trilha dos Saberes: Ervas e Sabores do Nordeste</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #2d5a27 0%, #1e3a1a 100%);
+      min-height: 100vh;
+      text-align: center;
+      color: #fff;
+      padding: 20px;
+    }
+    .hidden { display: none !important; }
+    .container {
+      margin-top: 20px;
+      background: rgba(255,255,255,0.95);
+      color: #1e3a1a;
+      padding: 30px;
+      border-radius: 25px;
+      display: inline-block;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      border: 5px solid #8bc34a;
+    }
+    h1 { font-size: 2.2rem; color: #2d5a27; margin-bottom: 10px; }
+    .badge { background: #8bc34a; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; }
+    
+    input, button {
+      padding: 14px; margin: 10px 0; font-size: 1rem; border-radius: 12px; border: 2px solid #ddd;
+      width: 100%; max-width: 400px; display: block; margin-left: auto; margin-right: auto;
+    }
+    button {
+      background: #4caf50; color: white; font-weight: bold; cursor: pointer; border: none;
+      box-shadow: 0 4px 0 #2e7d32; transition: all 0.2s;
+    }
+    button:hover { background: #66bb6a; transform: translateY(-2px); }
+    button:active { transform: translateY(2px); box-shadow: none; }
+
+    .code-display { font-size: 3rem; font-weight: bold; color: #2d5a27; margin: 20px 0; border: 3px dashed #8bc34a; padding: 10px; border-radius: 15px; }
+    .option-btn { background: #f1f8e9; border: 2px solid #8bc34a; color: #2d5a27; cursor: pointer; padding: 18px; font-size: 1.1rem; font-weight: bold; }
+    .option-btn:hover { background: #dcedc8; }
+    
+    .intro-text { font-style: italic; color: #555; margin-bottom: 20px; line-height: 1.5; }
+    .status-bar { background: #e8f5e9; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; color: #2d5a27; }
+    .visual-board { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
+    .visual-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 12px; background: #f5f9f1; border: 2px solid #c5e1a5; border-radius: 16px; }
+    .visual-side.single { grid-template-columns: 1fr; }
+    .visual-card { background: white; border: 2px solid #dce8d2; border-radius: 14px; padding: 8px; transition: transform .2s, box-shadow .2s, border-color .2s; cursor: pointer; }
+    .visual-card:hover, .visual-card.selected { transform: translateY(-5px) scale(1.03); border-color: #66bb6a; box-shadow: 0 8px 18px rgba(46,125,50,.25); }
+    .visual-card img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; display: block; }
+    .visual-card strong { display: block; color: #2d5a27; font-size: .9rem; margin-top: 5px; }
+    .side-title { grid-column: 1 / -1; color: #388e3c; font-weight: bold; font-size: .95rem; }
+    .score-line { color: #2d5a27; font-weight: bold; margin-top: 4px; }
+    .info-panel { background: #f1f8e9; border: 2px solid #8bc34a; border-radius: 14px; padding: 14px; margin-top: 16px; color: #2d5a27; line-height: 1.5; min-height: 70px; }
+    .reaction { padding: 16px; margin: 12px 0; border-radius: 16px; font-size: 1.15rem; font-weight: bold; text-align: center; animation: reactionPop .45s ease-out; }
+    .reaction.correct { background: #dcfce7; color: #166534; border: 2px solid #4ade80; }
+    .reaction.wrong { background: #fee2e2; color: #991b1b; border: 2px solid #f87171; }
+    .reaction-emoji { display: block; font-size: 2.5rem; margin-bottom: 4px; }
+    .gallery-action { max-width: 400px; background: #2e7d32; margin: 14px auto 0; }
+    @keyframes reactionPop { from { opacity: 0; transform: scale(.8) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    @media (max-width: 560px) { .visual-board { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <!-- 1. TELA INICIAL -->
+  <div id="start-screen" class="container">
+    <div style="font-size: 3rem;">🌿🍲</div>
+    <h1>Trilha dos Saberes</h1>
+    <p>Ervas e Culinária do Nosso Nordeste</p>
+    <div style="margin-top: 30px;">
+      <button onclick="goTo('professor-login-screen')">👨‍🏫 Painel do Professor</button>
+      <button onclick="goTo('student-login-screen')">👨‍🎓 Entrar como Aluno</button>
+    </div>
+  </div>
+
+  <!-- 2. LOGIN PROFESSOR -->
+  <div id="professor-login-screen" class="container hidden">
+    <h2>Acesso do Professor</h2>
+    <input type="password" id="prof-password" placeholder="Senha do Professor">
+    <button onclick="loginProfessor()">Entrar no Painel</button>
+    <button onclick="location.reload()" style="background:#9e9e9e; box-shadow: 0 4px 0 #757575;">Voltar</button>
+  </div>
+
+  <!-- 3. PAINEL DO PROFESSOR -->
+  <div id="professor-panel" class="container hidden">
+    <span class="badge">SALA DO PROFESSOR</span>
+    <h2>Código da Partida</h2>
+    <div class="code-display" id="game-code">------</div>
+    <div id="connected-players" style="margin: 15px 0; font-weight: bold; color: #4caf50;">Aguardando alunos...</div>
+    <button id="btn-start-game" onclick="startGameSession()" style="background:#2e7d32;">🚀 INICIAR A TRILHA</button>
+    <div id="professor-controls" class="hidden mt-4">
+        <div id="question-progress" style="font-weight: bold; margin-bottom: 10px;">Questão 1 de 9</div>
+        <button onclick="nextQuestion()" style="background:#0288d1; box-shadow: 0 4px 0 #01579b;">➡️ PRÓXIMA PERGUNTA</button>
+    </div>
+  </div>
+
+  <!-- 4. LOGIN ALUNO -->
+  <div id="student-login-screen" class="container hidden">
+    <h2>Entrar na Trilha</h2>
+    <p class="intro-text">"A sabedoria do nosso povo não tá só nos livros, tá na panela e no quintal!"</p>
+    <input type="text" id="game-code-input" placeholder="Código da Sala">
+    <input type="text" id="student-name" placeholder="Seu Nome Completo">
+    <button onclick="joinGame()">ENTRAR NA SALA</button>
+    <button onclick="location.reload()" style="background:#9e9e9e; box-shadow: 0 4px 0 #757575;">Voltar</button>
+  </div>
+
+  <!-- 5. TELA DE JOGO ALUNO -->
+  <div id="student-game-screen" class="container hidden">
+    <div id="game-status" class="status-bar">⏳ Aguardando o professor...</div>
+    <div id="question-div" class="hidden text-left">
+        <div id="current-question" style="font-size: 1.3rem; margin: 20px 0; font-weight: bold; line-height: 1.4;"></div>
+        <div id="visual-board" class="visual-board"></div>
+        <div id="visual-info" class="info-panel hidden" aria-live="polite"></div>
+        <div id="reaction-area" aria-live="polite"></div>
+        <div id="options-container" style="display: grid; grid-template-columns: 1fr; gap: 12px;"></div>
+    </div>
+    <div id="waiting-msg" style="margin-top: 20px;">
+        <p>Você já está na sala! ✅</p>
+        <p style="color: #666; font-size: 0.9rem;">Prepare-se para testar seus conhecimentos sobre o folclore das ervas e sabores!</p>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = { 
+        apiKey: "AIzaSyB-fzXlO-PofqHCa0L7p14Y-YSOvAwG-WM",
+        authDomain: "kahootjogosaojoao2.firebaseapp.com",
+        projectId: "kahootjogosaojoao2",
+        databaseURL: "https://kahootjogosaojoao2-default-rtdb.firebaseio.com",
+        storageBucket: "kahootjogosaojoao2.firebasestorage.app" 
+    };
+
+    let database = null;
+    let gameCodeGlobal = "";
+    let currentIdx = 0;
+    let playerName = "";
+    let playerScore = 0;
+    let answeredQuestion = false;
+    let displayedQuestionIdx = null;
+
+    function participantEmoji(name) {
+      const firstName = name.trim().split(/\s+/)[0].toLowerCase();
+      const feminineEnding = /a$/.test(firstName) && !/lucas|andré|andre|josé|jose$/.test(firstName);
+      return feminineEnding ? '👧' : '👦';
+    }
+
+    function shuffle(items) {
+      const result = [...items];
+      for (let index = result.length - 1; index > 0; index--) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [result[index], result[randomIndex]] = [result[randomIndex], result[index]];
+      }
+      return result;
+    }
+
+    const herbVisuals = [
+      { name: "Arruda", image: "saberes/arruda.svg" }, { name: "Boldo", image: "saberes/boldo.svg" },
+      { name: "Capim-santo", image: "saberes/capim-santo.svg" }, { name: "Mastruz", image: "saberes/mastruz.svg" }
+    ];
+    const foodVisuals = {
+      tapioca: { name: "Tapioca", image: "saberes/tapioca.svg" }, cuscuz: { name: "Cuscuz", image: "saberes/cuscuz.svg" },
+      beiju: { name: "Beiju", image: "saberes/beiju.svg" }, cartola: { name: "Cartola", image: "saberes/cartola.svg" },
+      mandioca: { name: "Mandioca", image: "saberes/mandioca.svg" }, pamonha: { name: "Pamonha", image: "saberes/pamonha.svg" },
+      canjica: { name: "Canjica", image: "saberes/canjica.svg" }
+    };
+    const galleryItems = [
+      { name: "Arruda", image: "saberes/arruda.svg", text: "A arruda é o maior símbolo das benzedeiras do Nordeste! O povo diz que ela murcha na hora se entrar em contato com inveja ou olho-gordo, funcionando como um escudo de proteção pra gente e pra nossa casa.", question: "Segundo o texto, contra o que a arruda funciona como escudo?", options: ["Inveja ou olho-gordo", "Chuva e vento", "Fome e sede", "Frio e calor"], answer: "Inveja ou olho-gordo" },
+      { name: "Capim-Santo", image: "saberes/capim-santo.svg", text: "O chá de capim-santo não é só uma bebida, é um ritual da noite! Antigamente, as parteiras e os mais velhos ensinavam que ele serve para acalmar o espírito e espantar os pesadelos.", question: "Para que o capim-santo era ensinado pelos mais velhos?", options: ["Acalmar o espírito e espantar pesadelos", "Dar energia para correr", "Temperar o cuscuz", "Colorir tecidos"], answer: "Acalmar o espírito e espantar pesadelos" },
+      { name: "Mastruz com leite", image: "saberes/mastruz.svg", text: "O famoso 'mastruz com leite' é visto no Sertão como uma poção mágica! O saber popular diz que ele limpa o peito e cura qualquer pancada. Mas tem um segredo: a folha precisa ser colhida bem cedinho, antes do sol esquentar.", question: "Segundo o texto, quando a folha de mastruz deve ser colhida?", options: ["Bem cedinho, antes do sol esquentar", "Ao meio-dia", "Depois da chuva", "À noite"], answer: "Bem cedinho, antes do sol esquentar" },
+      { name: "Boldo", image: "saberes/boldo.svg", text: "O boldo representa os ervairos e curandeiros. Por ser muito amargo, ele deu origem ao famoso ditado popular do nosso folclore: 'remédio bom é remédio que faz careta'!", question: "Qual característica do boldo inspirou o ditado popular?", options: ["Seu sabor muito amargo", "Sua cor azul", "Seu perfume doce", "Sua raiz comprida"], answer: "Seu sabor muito amargo" },
+      { name: "Mandioca", image: "saberes/mandioca.svg", text: "A mandioca nasceu de um mito indígena! A lenda conta que a indiazinha Mani morreu e foi enterrada dentro de sua oca. As lágrimas da tribo regaram a terra e de lá nasceu essa raiz de casca escura e miolo branco. Mani-Oca significa 'a casa de Mani'.", question: "O que significa Mani-Oca na lenda?", options: ["A casa de Mani", "A raiz branca", "A festa da tribo", "A terra molhada"], answer: "A casa de Mani" },
+      { name: "Cuscuz", image: "saberes/cuscuz.svg", text: "O cuscuz mistura a herança africana com o milho indígena. Ele se tornou o símbolo de resistência do sertanejo, estando presente em cordéis, cantigas de roda e nas músicas de Luiz Gonzaga!", question: "O que o cuscuz mistura, segundo o texto?", options: ["A herança africana e o milho indígena", "Frutas europeias e arroz", "Café e mandioca", "Leite e canela"], answer: "A herança africana e o milho indígena" },
+      { name: "Beiju e Tapioca", image: "saberes/beiju.svg", text: "A tapioca e o beiju vêm da macaxeira e fazem parte das 'casas de farinha'. O preparo artesanal sempre foi um momento de festa comunitária, com muita música, causos e celebração nas festas juninas.", question: "De onde vêm o beiju e a tapioca?", options: ["Da macaxeira", "Do milho", "Da banana", "Do arroz"], answer: "Da macaxeira" },
+      { name: "Cartola", image: "saberes/cartola.svg", text: "A sobremesa Cartola conta a história do Nordeste no prato! Ela junta a banana das nossas terras, o queijo e a canela dos europeus, e o saber fazer das mãos africanas nas cozinhas dos engenhos.", question: "Quais ingredientes e saberes aparecem na história da Cartola?", options: ["Banana, queijo, canela e saber africano", "Milho, leite e café", "Mandioca, arroz e ervas", "Pamonha e rapadura"], answer: "Banana, queijo, canela e saber africano" }
+    ];
+    const questions = [
+      {q: "Qual erva é o maior símbolo das benzedeiras e dizem que murcha com inveja?", a: "Arruda", opts: ["Arruda", "Boldo", "Capim-Santo", "Mastruz"], visuals: { left: herbVisuals.slice(0, 2), right: herbVisuals.slice(2), leftTitle: "Ervas de proteção", rightTitle: "Ervas de cuidado" }},
+      {q: "Antigamente, as parteiras ensinavam que o chá de _________ serve para acalmar o espírito e espantar pesadelos.", a: "Capim-Santo", opts: ["Boldo", "Capim-Santo", "Arruda", "Mandioca"], visuals: { left: herbVisuals.slice(0, 2), right: herbVisuals.slice(2), leftTitle: "Observe as ervas", rightTitle: "Encontre a resposta" }},
+      {q: "O saber popular diz que o 'Mastruz com leite' é uma poção mágica que:", a: "Limpa o peito e cura pancadas", opts: ["Dá sono", "Limpa o peito e cura pancadas", "Tira a fome", "Cura dor de dente"], visuals: { left: herbVisuals.slice(0, 2), right: herbVisuals.slice(2), leftTitle: "Plantas do quintal", rightTitle: "Saberes populares" }},
+      {q: "Qual é o famoso ditado popular que nasceu por causa do gosto amargo do Boldo?", a: "Remédio bom é remédio que faz careta", opts: ["Quem avisa amigo é", "Remédio bom é remédio que faz careta", "Antes tarde do que nunca", "Mais vale um pássaro na mão"], visuals: { left: herbVisuals.slice(0, 2), right: herbVisuals.slice(2), leftTitle: "Compare as folhas", rightTitle: "Identifique o boldo" }},
+      {q: "Segundo a lenda indígena, o nome MANDIOCA significa o quê?", a: "A casa de Mani", opts: ["Raiz branca", "Comida de índio", "A casa de Mani", "Presente da terra"], visuals: { left: [{ name: "Uma indígena", image: "saberes/india.svg" }], right: [{ name: "Mandioca", image: foodVisuals.mandioca.image }], leftTitle: "Lenda indígena", rightTitle: "Raiz da terra" }},
+      {q: "Qual prato é símbolo de resistência do sertanejo e está nas músicas de Luiz Gonzaga?", a: "Cuscuz", opts: ["Tapioca", "Cuscuz", "Beiju", "Cartola"], visuals: { left: [foodVisuals.tapioca, foodVisuals.cuscuz], right: [foodVisuals.beiju, foodVisuals.cartola], leftTitle: "Pratos do sertão", rightTitle: "Sabores do Nordeste" }},
+      {q: "O beiju e a tapioca vêm da macaxeira e o preparo artesanal acontecia nas:", a: "Casas de farinha", opts: ["Casas de farinha", "Feiras livres", "Cozinhas industriais", "Senzalas"], visuals: { left: [foodVisuals.beiju, foodVisuals.tapioca, foodVisuals.mandioca], right: [foodVisuals.cuscuz], leftTitle: "Derivados da mandioca", rightTitle: "Outros sabores" }},
+      {q: "Qual sobremesa mistura banana, queijo, canela e o saber das mãos africanas?", a: "Cartola", opts: ["Pamonha", "Canjica", "Cartola", "Beiju"], visuals: { left: [foodVisuals.pamonha, foodVisuals.canjica], right: [foodVisuals.cartola, foodVisuals.beiju], leftTitle: "Doces tradicionais", rightTitle: "Receitas afetivas" }},
+      {q: "Clique em cada imagem para conhecer um pouco mais dos saberes, ervas e sabores do Nordeste.", type: "gallery", gallery: galleryItems}
+    ];
+
+    try {
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+    } catch(e) { console.error("Erro Firebase"); }
+
+    function goTo(id) {
+        document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function loginProfessor() {
+        if(document.getElementById('prof-password').value === 'professor123') {
+            goTo('professor-panel');
+            gameCodeGlobal = Math.random().toString(36).substr(2, 6).toUpperCase();
+            document.getElementById('game-code').innerText = gameCodeGlobal;
+            database.ref('games/' + gameCodeGlobal).set({ status: 'waiting', currentQ: 0 });
+            database.ref('games/' + gameCodeGlobal + '/players').on('value', snap => {
+                const p = snap.val() || {};
+                const players = Object.values(p).sort((a, b) => (b.score || 0) - (a.score || 0));
+                document.getElementById('connected-players').innerHTML = players.length
+                  ? players.map((player, index) => `<div class="score-line">${participantEmoji(player.name)} ${index + 1}. ${player.name}: ${player.score || 0} ponto(s) ${player.answered ? '✅ respondeu' : '⏳ aguardando'}</div>`).join('')
+                  : 'Aguardando alunos...';
+            });
+        } else { alert("Senha incorreta!"); }
+    }
+
+    function startGameSession() {
+      currentIdx = 0;
+        database.ref('games/' + gameCodeGlobal).update({ status: 'playing', currentQ: 0 });
+        database.ref('games/' + gameCodeGlobal + '/players').once('value', snap => {
+          const players = snap.val() || {};
+          Object.keys(players).forEach(key => database.ref('games/' + gameCodeGlobal + '/players/' + key).update({ answered: false, answeredQuestion: 0 }));
+        });
+        document.getElementById('btn-start-game').classList.add('hidden');
+        document.getElementById('professor-controls').classList.remove('hidden');
+        document.getElementById('question-progress').innerText = "Questão 1 de " + questions.length;
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if(currentIdx < questions.length) {
+            database.ref('games/' + gameCodeGlobal).update({ currentQ: currentIdx });
+            database.ref('games/' + gameCodeGlobal + '/players').once('value', snap => {
+              const players = snap.val() || {};
+              Object.keys(players).forEach(key => database.ref('games/' + gameCodeGlobal + '/players/' + key).update({ answered: false, answeredQuestion: currentIdx + 1 }));
+            });
+            document.getElementById('question-progress').innerText = "Questão " + (currentIdx + 1) + " de " + questions.length;
+        } else {
+            database.ref('games/' + gameCodeGlobal).update({ status: 'finished' });
+            alert("Fim da Trilha! 'O folclore tá vivo no que a gente come e no chá que a gente toma!'");
+        }
+    }
+
+    function joinGame() {
+        const code = document.getElementById('game-code-input').value.trim().toUpperCase();
+        const name = document.getElementById('student-name').value.trim();
+        if(!name || !code) return alert("Preencha o código e seu nome!");
+
+        database.ref('games/' + code).once('value', snap => {
+            if(!snap.exists()) return alert("Código não encontrado!");
+            gameCodeGlobal = code;
+            playerName = name;
+            playerScore = 0;
+            displayedQuestionIdx = null;
+            goTo('student-game-screen');
+            database.ref('games/' + code + '/players/' + name.replace(/\./g, '_')).set({ name, score: 0, answered: false, answeredQuestion: 0 });
+            
+            database.ref('games/' + code).on('value', gSnap => {
+                const data = gSnap.val();
+                if(data.status === 'playing' && String(data.currentQ) !== String(displayedQuestionIdx)) {
+                  startStudentGame(data.currentQ);
+                }
+                else if(data.status === 'finished') {
+                    document.getElementById('question-div').innerHTML = "<h2>Trilha Concluída! 🌿</h2><p>O folclore tá vivo no que a gente come e no chá que a gente toma! Muito obrigado!</p>";
+                }
+            });
+        });
+    }
+
+    function startStudentGame(qIndex) {
+      displayedQuestionIdx = qIndex;
+        document.getElementById('game-status').innerText = "📖 TRILHA EM ANDAMENTO - QUESTÃO " + (qIndex + 1);
+        document.getElementById('waiting-msg').classList.add('hidden');
+        document.getElementById('question-div').classList.remove('hidden');
+        
+        const q = questions[qIndex];
+        answeredQuestion = false;
+        document.getElementById('current-question').innerText = q.q;
+        document.getElementById('visual-info').classList.add('hidden');
+        document.getElementById('reaction-area').innerHTML = '';
+        renderVisuals(q.visuals);
+        const container = document.getElementById('options-container');
+        container.innerHTML = ""; 
+
+        if (q.type === 'gallery') {
+          renderGallery(q.gallery);
+          return;
+        }
+        
+        shuffle(q.opts).forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = "option-btn";
+            btn.innerText = opt;
+            btn.onclick = function() {
+              if (answeredQuestion) return;
+              answeredQuestion = true;
+              const correct = opt === q.a;
+              if(correct) playerScore += 10;
+              showReaction(correct, correct ? "Correto! Você conhece nossa cultura! ✨" : `Não foi dessa vez. A resposta correta era: ${q.a}`);
+              database.ref('games/' + gameCodeGlobal + '/players/' + playerName.replace(/\./g, '_')).update({ name: playerName, score: playerScore, answered: true, answeredQuestion: currentIdx + 1 });
+              container.innerHTML = "<div class='status-bar'>Resposta enviada! Aguarde o professor seguir com a trilha...</div>";
+            };
+            container.appendChild(btn);
+        });
+    }
+
+    function showReaction(correct, message) {
+      const reaction = document.getElementById('reaction-area');
+      reaction.innerHTML = `<div class="reaction ${correct ? 'correct' : 'wrong'}"><span class="reaction-emoji">${correct ? '🎉👏✨' : '😢💭'}</span>${message}</div>`;
+    }
+
+        function renderVisuals(visuals) {
+          const board = document.getElementById('visual-board');
+          board.innerHTML = '';
+          if (!visuals) return;
+          [['left', visuals.left, visuals.leftTitle], ['right', visuals.right, visuals.rightTitle]].forEach(([side, items, title]) => {
+            const column = document.createElement('div');
+            column.className = 'visual-side' + (items.length === 1 ? ' single' : '');
+            column.innerHTML = `<div class="side-title">${title}</div>`;
+            items.forEach(item => {
+              const card = document.createElement('div');
+              card.className = 'visual-card';
+              card.tabIndex = 0;
+              card.innerHTML = `<img src="${item.image}" alt="${item.name}"><strong>${item.name}</strong>`;
+              card.onclick = () => card.classList.toggle('selected');
+              card.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') card.classList.toggle('selected'); };
+              column.appendChild(card);
+            });
+            board.appendChild(column);
+          });
+        }
+
+      function renderGallery(items) {
+        const board = document.getElementById('visual-board');
+        board.innerHTML = '';
+        board.style.gridTemplateColumns = '1fr';
+        const column = document.createElement('div');
+        column.className = 'visual-side';
+        column.style.gridTemplateColumns = 'repeat(4, minmax(0, 1fr))';
+        column.innerHTML = '<div class="side-title">Galeria dos saberes</div>';
+        items.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'visual-card';
+          card.tabIndex = 0;
+          card.innerHTML = `<img src="${item.image}" alt="${item.name}"><strong>${item.name}</strong>`;
+          const showInfo = () => {
+            document.querySelectorAll('#visual-board .visual-card').forEach(other => other.classList.remove('selected'));
+            card.classList.add('selected');
+            const info = document.getElementById('visual-info');
+            info.innerHTML = `<strong>${item.name}</strong><br>${item.text}<br><button type="button" class="gallery-action" data-gallery-action="question">Responder pergunta</button>`;
+            info.classList.remove('hidden');
+            info.querySelector('[data-gallery-action="question"]').onclick = () => showGalleryQuestion(item);
+          };
+          card.onclick = showInfo;
+          card.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') showInfo(); };
+          column.appendChild(card);
+        });
+        board.appendChild(column);
+      }
+
+      function showGalleryQuestion(item) {
+        const info = document.getElementById('visual-info');
+        info.innerHTML = `<strong>Pergunta sobre ${item.name}</strong><br>${item.question}<div id="gallery-options" style="display:grid;gap:8px;margin-top:10px;"></div>`;
+        const options = document.getElementById('gallery-options');
+        shuffle(item.options).forEach(option => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'option-btn';
+          button.textContent = option;
+          button.onclick = () => {
+            const correct = option === item.answer;
+            if (correct) {
+              playerScore += 10;
+              database.ref('games/' + gameCodeGlobal + '/players/' + playerName.replace(/\./g, '_')).update({ name: playerName, score: playerScore });
+            }
+            showReaction(correct, correct ? `Acertou! +10 pontos em ${item.name}.` : `Vamos revisar o texto. A resposta correta é: ${item.answer}.`);
+            info.innerHTML = `<strong>${correct ? 'Muito bem!' : 'Leia novamente com atenção.'}</strong><br>${correct ? 'Você encontrou a informação correta.' : `A resposta correta é: ${item.answer}.`}<br><button type="button" class="gallery-action" data-gallery-action="back">Voltar às imagens</button>`;
+            database.ref('games/' + gameCodeGlobal + '/players/' + playerName.replace(/\./g, '_')).update({ name: playerName, score: playerScore, answered: true, answeredQuestion: currentIdx + 1 });
+            info.querySelector('[data-gallery-action="back"]').onclick = () => {
+              info.classList.add('hidden');
+              document.querySelectorAll('#visual-board .visual-card').forEach(card => card.classList.remove('selected'));
+            };
+          };
+          options.appendChild(button);
+        });
+      }
+  </script>
+</body>
+</html>

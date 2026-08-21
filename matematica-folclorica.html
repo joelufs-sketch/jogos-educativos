@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matemática Folclórica Interativa - Escola Luiz Antonio</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a237e url('https://www.transparenttextures.com/patterns/dark-matter.png');
+      min-height: 100vh; text-align: center; color: #fff; padding: 20px;
+    }
+    .hidden { display: none !important; }
+    .container {
+      margin-top: 20px; background: rgba(255,255,255,0.98); color: #1a237e;
+      padding: 30px; border-radius: 30px; display: inline-block;
+      max-width: 800px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      border: 8px solid #ff9800;
+    }
+    h1 { font-size: 2.5rem; color: #e65100; margin-bottom: 10px; font-weight: 900; }
+    .badge { background: #ff9800; color: white; padding: 5px 20px; border-radius: 20px; font-weight: bold; text-transform: uppercase; }
+    
+    input, button {
+      padding: 16px; margin: 10px 0; font-size: 1.1rem; border-radius: 15px; border: 3px solid #eee;
+      width: 100%; max-width: 400px; display: block; margin-left: auto; margin-right: auto;
+    }
+    button {
+      background: #ff9800; color: white; font-weight: bold; cursor: pointer; border: none;
+      box-shadow: 0 6px 0 #ef6c00; transition: all 0.2s;
+    }
+    button:hover { background: #ffa726; transform: translateY(-2px); }
+    button:active { transform: translateY(2px); box-shadow: none; }
+
+    .code-display { font-size: 3.5rem; font-weight: bold; color: #e65100; margin: 20px 0; border: 4px dashed #ff9800; padding: 15px; border-radius: 20px; background: #fff8e1; }
+    
+    /* Estilo das Opções */
+    .option-btn { 
+        background: #fff; border: 3px solid #ff9800; color: #e65100; 
+        cursor: pointer; padding: 20px; font-size: 1.2rem; font-weight: bold; 
+        width: 100%; transition: all 0.3s; box-shadow: 0 4px 0 #ffe0b2;
+    }
+    .option-btn:hover { background: #ff9800; color: #fff; transform: scale(1.02); }
+    
+    .q-image { 
+        width: 100%; max-width: 400px; height: 250px; 
+        object-fit: contain; margin: 0 auto 20px; 
+        display: block; border-radius: 15px;
+        background: #f8f9fa; padding: 10px;
+    }
+
+    .feedback-card {
+        padding: 20px; border-radius: 20px; margin-top: 20px;
+        font-weight: bold; border: 4px solid;
+    }
+    .correct { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+    .wrong { background: #ffebee; color: #c62828; border-color: #ef9a9a; }
+        .feedback-card { animation: feedbackPop .6s ease-out; }
+        @keyframes feedbackPop {
+            0% { transform: scale(.7) rotate(-5deg); opacity: 0; }
+            70% { transform: scale(1.08) rotate(2deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+        .ranking { margin: 20px 0; text-align: left; }
+        .ranking h3 { color: #e65100; margin-bottom: 10px; }
+        .ranking-item { display: flex; justify-content: space-between; gap: 12px; padding: 12px; margin: 7px 0; border-radius: 12px; background: #fff3e0; color: #5d4037; font-weight: bold; }
+        .answer-state { font-size: .9rem; white-space: nowrap; }
+        .answered { color: #2e7d32; }
+        .waiting-answer { color: #ef6c00; }
+  </style>
+</head>
+<body>
+
+  <!-- TELA INICIAL -->
+  <div id="start-screen" class="container">
+    <img src="https://cdn-icons-png.flaticon.com/512/3081/3081541.png" width="150" class="mx-auto mb-4">
+    <h1>Matemática Folclórica</h1>
+    <span class="badge">Arraial da Matemática</span>
+    <p style="font-size: 1.2rem; margin-bottom: 20px;">Geometria e Desafios do Folclore</p>
+    <div style="margin-top: 30px;">
+      <button onclick="goTo('professor-login-screen')">👨‍🏫 MODO PROFESSOR</button>
+      <button onclick="goTo('student-login-screen')">👨‍🎓 MODO ALUNO</button>
+    </div>
+  </div>
+
+  <!-- LOGIN PROFESSOR -->
+  <div id="professor-login-screen" class="container hidden">
+    <h2>Acesso Restrito</h2>
+    <input type="password" id="prof-password" placeholder="Senha do Professor">
+    <button onclick="loginProfessor()">Entrar no Painel</button>
+    <button onclick="location.reload()" style="background:#9e9e9e; box-shadow: 0 4px 0 #757575;">Voltar</button>
+  </div>
+
+  <!-- PAINEL PROFESSOR -->
+  <div id="professor-panel" class="container hidden">
+    <span class="badge">Painel de Controle</span>
+    <div class="code-display" id="game-code">------</div>
+    <div id="connected-players" style="font-weight: bold; color: #ef6c00; margin-bottom: 20px;">Aguardando alunos...</div>
+    <div id="professor-ranking" class="ranking"></div>
+    <button id="btn-start-game" onclick="startGameSession()" style="background:#2e7d32; box-shadow: 0 6px 0 #1b5e20;">🚀 INICIAR PARTIDA</button>
+    <div id="professor-controls" class="hidden">
+        <button onclick="nextQuestion()" style="background:#0288d1; box-shadow: 0 6px 0 #01579b;">➡️ PRÓXIMA PERGUNTA</button>
+    </div>
+  </div>
+
+  <!-- LOGIN ALUNO -->
+  <div id="student-login-screen" class="container hidden">
+    <img src="https://cdn-icons-png.flaticon.com/512/2941/2941505.png" width="100" class="mx-auto mb-4">
+    <h2>Entre na Sala</h2>
+    <input type="text" id="game-code-input" placeholder="Código da Sala">
+    <input type="text" id="student-name" placeholder="Seu Nome">
+    <button onclick="joinGame()">ENTRAR NO JOGO</button>
+    <button onclick="location.reload()" style="background:#9e9e9e; box-shadow: 0 4px 0 #757575;">Voltar</button>
+  </div>
+
+  <!-- TELA DE JOGO -->
+  <div id="student-game-screen" class="container hidden">
+    <div id="game-status" style="margin-bottom: 15px; font-weight: bold; color: #ff9800;">Aguardando Início...</div>
+    <div id="question-div" class="hidden">
+        <img id="question-img" src="" class="q-image">
+        <div id="current-question" style="font-size: 1.4rem; margin-bottom: 20px; font-weight: bold; color: #311b92;"></div>
+        <div id="options-container" style="display: grid; grid-template-columns: 1fr; gap: 15px;"></div>
+    </div>
+    <div id="feedback-div" class="hidden"></div>
+    <div id="student-score" style="margin-top: 18px; font-weight: bold; color: #e65100;">Pontuação: 0</div>
+  </div>
+
+  <script>
+    const firebaseConfig = { 
+        apiKey: "AIzaSyB-fzXlO-PofqHCa0L7p14Y-YSOvAwG-WM",
+        authDomain: "kahootjogosaojoao2.firebaseapp.com",
+        projectId: "kahootjogosaojoao2",
+        databaseURL: "https://kahootjogosaojoao2-default-rtdb.firebaseio.com",
+        storageBucket: "kahootjogosaojoao2.firebasestorage.app" 
+    };
+
+    let database = null;
+    let gameCodeGlobal = "";
+    let currentIdx = 0;
+    let playerKey = "";
+    let activeQuestionIndex = -1;
+    let answeredQuestionIndex = -1;
+
+    function illustration(emoji, title, detail) {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450"><rect width="800" height="450" rx="28" fill="#fff8e1"/><circle cx="670" cy="90" r="48" fill="#ffcc80"/><path d="M0 370 Q180 315 360 370 T800 355 V450 H0Z" fill="#ffe0b2"/><text x="400" y="125" text-anchor="middle" font-family="Arial" font-size="78">${emoji}</text><text x="400" y="210" text-anchor="middle" font-family="Arial" font-size="32" font-weight="bold" fill="#e65100">${title}</text><text x="400" y="260" text-anchor="middle" font-family="Arial" font-size="23" fill="#6d4c41">${detail}</text><path d="M125 330 H675" stroke="#ff9800" stroke-width="8" stroke-linecap="round"/></svg>`;
+        return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+    }
+
+    const questionImages = [
+        illustration('🪁', 'Pipa', 'brinquedo em formato de losango'),
+        illustration('🌀', 'Pião girando', 'objeto rodando no chão'),
+        illustration('⚄', 'Dado de 6 faces', 'faces com valores de 1 a 6'),
+        illustration('🟨', 'Amarelinha', 'brincadeira folclórica'),
+        illustration('🍲', 'Cuscuz', 'comida típica nordestina'),
+        illustration('🧙🏿‍♂️ 🌲', 'Saci e Curupira', '1 Saci e 1 Curupira')
+    ];
+
+    const questions = [
+        {
+            q: "GEOMETRIA: Ao observar uma PIPA tradicional, qual figura geométrica plana é a base de sua estrutura?",
+            a: "Losango",
+            opts: ["Círculo", "Losango", "Cilindro", "Trapézio"],
+            img: questionImages[0],
+            info: "A pipa tem 4 lados e suas diagonais formam um losango!"
+        },
+        {
+            q: "GEOMETRIA: O PIÃO, ao girar no chão, lembra qual destes sólidos geométricos?",
+            a: "Cone",
+            opts: ["Cubo", "Esfera", "Cone", "Pirâmide"],
+            img: questionImages[1],
+            info: "A ponta fina e a base redonda formam um cone perfeito!"
+        },
+        {
+            q: "PROBABILIDADE: Se jogarmos um dado para ver quem começa a amarelinha, qual a chance de sair o número 6?",
+            a: "1 em 6",
+            opts: ["1 em 2", "1 em 6", "1 em 3", "100%"],
+            img: questionImages[2],
+            info: "O dado tem 6 faces iguais, então é 1 chance em 6!"
+        },
+        {
+            q: "MEDIDAS: Cada quadrado da amarelinha tem 50cm. Se você pular 6 quadrados, quantos metros você percorreu?",
+            a: "3 metros",
+            opts: ["2 metros", "3 metros", "6 metros", "300 metros"],
+            img: questionImages[3],
+            info: "6 x 50cm = 300cm, que é o mesmo que 3 metros!"
+        },
+        {
+            q: "PROPORÇÃO: A receita de Cuscuz usa 1 xícara de água para 2 de flocão. Se eu usar 4 xícaras de flocão, quanta água preciso?",
+            a: "2 xícaras",
+            opts: ["1 xícara", "2 xícaras", "3 xícaras", "4 xícaras"],
+            img: questionImages[4],
+            info: "Sempre o dobro de flocão para a água. 4 é o dobro de 2!"
+        },
+        {
+            q: "CONTAGEM: 10 Sacis (1 perna) e 5 Curupiras (2 pernas) estão na mata. Quantas pernas há no total?",
+            a: "20 pernas",
+            opts: ["15 pernas", "20 pernas", "25 pernas", "30 pernas"],
+            img: questionImages[5],
+            info: "(10x1) + (5x2) = 10 + 10 = 20 pernas!"
+        }
+    ];
+
+    try {
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+    } catch(e) { console.error("Firebase Error"); }
+
+    function goTo(id) {
+        document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function loginProfessor() {
+        if(document.getElementById('prof-password').value === 'professor123') {
+            goTo('professor-panel');
+            gameCodeGlobal = Math.random().toString(36).substr(2, 6).toUpperCase();
+            document.getElementById('game-code').innerText = gameCodeGlobal;
+            database.ref('games/' + gameCodeGlobal).set({ status: 'waiting', currentQ: 0 });
+            database.ref('games/' + gameCodeGlobal + '/players').on('value', snap => {
+                const p = snap.val() || {};
+                renderProfessorRanking(p);
+            });
+        } else { alert("Senha Errada!"); }
+    }
+
+    function startGameSession() {
+        currentIdx = 0;
+        database.ref('games/' + gameCodeGlobal).update({ status: 'playing', currentQ: 0, questionStartedAt: firebase.database.ServerValue.TIMESTAMP });
+        document.getElementById('btn-start-game').classList.add('hidden');
+        document.getElementById('professor-controls').classList.remove('hidden');
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if(currentIdx < questions.length) {
+            database.ref('games/' + gameCodeGlobal).update({ currentQ: currentIdx, questionStartedAt: firebase.database.ServerValue.TIMESTAMP });
+        } else {
+            database.ref('games/' + gameCodeGlobal).update({ status: 'finished' });
+            showProfessorRanking();
+        }
+    }
+
+    function renderProfessorRanking(players) {
+        const entries = Object.keys(players).map(key => ({
+            name: players[key].name || key,
+            score: players[key].score || 0,
+            answered: Boolean(players[key].answers && players[key].answers[currentIdx])
+        })).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+        document.getElementById('connected-players').innerText = entries.length
+            ? 'Alunos na Sala: ' + entries.length
+            : 'Aguardando alunos...';
+        document.getElementById('professor-ranking').innerHTML = entries.length
+            ? '<h3>🏆 Ranking da Questão ' + (currentIdx + 1) + '</h3>' + entries.map((player, index) => `
+                <div class="ranking-item">
+                    <span>${['🥇', '🥈', '🥉'][index] || (index + 1) + '.'} ${player.name}</span>
+                    <span>${player.score} pts <small class="answer-state ${player.answered ? 'answered' : 'waiting-answer'}">${player.answered ? '✅ respondeu' : '⏳ aguardando'}</small></span>
+                </div>`).join('')
+            : '';
+    }
+
+    function showProfessorRanking() {
+        database.ref('games/' + gameCodeGlobal + '/players').once('value', snap => {
+            const players = snap.val() || {};
+            currentIdx = questions.length - 1;
+            renderProfessorRanking(players);
+            document.getElementById('professor-ranking').insertAdjacentHTML('afterbegin', '<h2>🏅 Ranking Final</h2>');
+        });
+    }
+
+    function joinGame() {
+        const code = document.getElementById('game-code-input').value.trim().toUpperCase();
+        const name = document.getElementById('student-name').value.trim();
+        if(!name || !code) return alert("Preencha tudo!");
+
+        database.ref('games/' + code).once('value', snap => {
+            if(!snap.exists()) return alert("Sala não encontrada!");
+            gameCodeGlobal = code;
+            goTo('student-game-screen');
+            playerKey = name.replace(/[.#$\[\]]/g, '_');
+            database.ref('games/' + code + '/players/' + playerKey).set({ name, score: 0, answers: {} });
+            
+            database.ref('games/' + code).on('value', gSnap => {
+                const data = gSnap.val();
+                if(data.status === 'playing') {
+                    document.getElementById('feedback-div').classList.add('hidden');
+                    if (data.currentQ !== activeQuestionIndex) startStudentGame(data.currentQ);
+                }
+                else if(data.status === 'finished') {
+                    document.getElementById('question-div').innerHTML = "<img src='https://cdn-icons-png.flaticon.com/512/3112/3112946.png' width='150' class='mx-auto'><h2>FIM DO ARRAIAL! 🏆</h2><p>Parabéns, você é um craque na matemática folclórica!</p>";
+                }
+            });
+        });
+    }
+
+    function startStudentGame(qIndex) {
+        activeQuestionIndex = qIndex;
+        answeredQuestionIndex = -1;
+        document.getElementById('game-status').innerText = "QUESTÃO " + (qIndex + 1);
+        document.getElementById('question-div').classList.remove('hidden');
+        
+        const q = questions[qIndex];
+        document.getElementById('question-img').src = q.img;
+        document.getElementById('current-question').innerText = q.q;
+        const container = document.getElementById('options-container');
+        container.innerHTML = ""; 
+        
+        q.opts.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = "option-btn";
+            btn.innerText = opt;
+            btn.onclick = function() {
+                if (answeredQuestionIndex === qIndex) return;
+                answeredQuestionIndex = qIndex;
+                const isCorrect = (opt === q.a);
+                const scoreChange = isCorrect ? 10 : 0;
+                const feedbackDiv = document.getElementById('feedback-div');
+                feedbackDiv.className = "feedback-card " + (isCorrect ? "correct" : "wrong");
+                feedbackDiv.innerHTML = (isCorrect ? "🎉🌟 ACERTOU! +10 pontos!" : "😢💧 ERROU...") + "<br><small>" + q.info + "</small>";
+                feedbackDiv.classList.remove('hidden');
+                container.innerHTML = "<p style='padding:20px; color:#666'>Resposta enviada! Aguarde o professor seguir...</p>";
+                database.ref('games/' + gameCodeGlobal + '/players/' + playerKey).update({
+                    score: firebase.database.ServerValue.increment(scoreChange),
+                    ['answers/' + qIndex]: { selected: opt, correct: isCorrect, answeredAt: firebase.database.ServerValue.TIMESTAMP }
+                });
+            };
+            container.appendChild(btn);
+        });
+    }
+  </script>
+</body>
+</html>

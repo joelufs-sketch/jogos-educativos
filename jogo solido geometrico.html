@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafio dos Sólidos Geométricos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Open Sans', sans-serif; background: #0f172a; color: white; overflow-x: hidden; }
+        .font-game { font-family: 'Fredoka One', cursive; }
+        .drop-zone { border: 3px dashed #38bdf8; border-radius: 15px; transition: all 0.3s; }
+        .drop-zone.active { background: rgba(56, 189, 248, 0.2); border-color: #7dd3fc; }
+        .solid-card { cursor: grab; active: grabbing; }
+        .word-slot { border-bottom: 4px solid #38bdf8; width: 40px; height: 50px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { motion, AnimatePresence } = window.Motion;
+
+        const solidoImagens = {
+            cubo: "solidos/cubo.svg",
+            esfera: "solidos/esfera.svg",
+            cilindro: "solidos/cilindro.svg",
+            cone: "solidos/cone.svg",
+            piramide: "solidos/piramide.svg",
+            prisma: "solidos/prisma.svg"
+        };
+
+        const perguntas = [
+            { pergunta: "Observe o cubo. Quantos vértices ele possui?", imagem: solidoImagens.cubo, opcoes: ["6", "8", "10", "12"], resposta: "8", explicacao: "O cubo tem 8 pontos de encontro, chamados vértices." },
+            { pergunta: "Observe o cubo. Quantas arestas ele possui?", imagem: solidoImagens.cubo, opcoes: ["6", "8", "12", "14"], resposta: "12", explicacao: "As arestas são os segmentos que ligam os vértices. O cubo tem 12." },
+            { pergunta: "Observe o cubo. Quantas faces quadradas formam sua superfície?", imagem: solidoImagens.cubo, opcoes: ["4", "6", "8", "12"], resposta: "6", explicacao: "Um cubo é formado por 6 faces quadradas." },
+            { pergunta: "A esfera é um poliedro ou um corpo redondo?", imagem: solidoImagens.esfera, opcoes: ["Poliedro", "Corpo redondo"], resposta: "Corpo redondo", explicacao: "A esfera tem superfície curva e não possui faces planas, arestas ou vértices." },
+            { pergunta: "O cilindro é um poliedro ou um corpo redondo?", imagem: solidoImagens.cilindro, opcoes: ["Poliedro", "Corpo redondo"], resposta: "Corpo redondo", explicacao: "O cilindro possui superfície lateral curva e duas bases circulares." },
+            { pergunta: "A pirâmide de base quadrada é um poliedro ou um corpo redondo?", imagem: solidoImagens.piramide, opcoes: ["Poliedro", "Corpo redondo"], resposta: "Poliedro", explicacao: "A pirâmide é formada apenas por faces planas, por isso é um poliedro." },
+            { pergunta: "Quantos vértices tem esta pirâmide de base quadrada?", imagem: solidoImagens.piramide, opcoes: ["4", "5", "6", "8"], resposta: "5", explicacao: "São 4 vértices na base e 1 vértice no topo: 5 ao todo." },
+            { pergunta: "O prisma triangular é um poliedro ou um corpo redondo?", imagem: solidoImagens.prisma, opcoes: ["Poliedro", "Corpo redondo"], resposta: "Poliedro", explicacao: "O prisma triangular tem somente faces planas e arestas retas." },
+            { pergunta: "Uma face de um sólido é uma superfície plana. Qual sólido abaixo possui faces planas?", imagem: solidoImagens.cubo, opcoes: ["Cubo", "Esfera"], resposta: "Cubo", explicacao: "As faces do cubo são superfícies planas quadradas." }
+        ];
+
+        const App = () => {
+            const [step, setStep] = useState('menu');
+            const [nome, setNome] = useState('');
+            const [score, setScore] = useState(0);
+            const [perguntaAtual, setPerguntaAtual] = useState(0);
+            const [resposta, setResposta] = useState(null);
+            const [ranking, setRanking] = useState([]);
+
+            useEffect(() => {
+                try { setRanking(JSON.parse(localStorage.getItem('rankingSolidos') || '[]')); } catch (e) { setRanking([]); }
+            }, []);
+
+            const iniciar = () => {
+                if (!nome.trim()) { alert('Digite seu nome para começar.'); return; }
+                setScore(0); setPerguntaAtual(0); setResposta(null); setStep('quiz');
+            };
+
+            const responder = (opcao) => {
+                if (resposta) return;
+                const acertou = opcao === perguntas[perguntaAtual].resposta;
+                setResposta({ opcao, acertou });
+                if (acertou) setScore(s => s + 10);
+            };
+
+            const proximaPergunta = () => {
+                if (perguntaAtual < perguntas.length - 1) {
+                    setPerguntaAtual(p => p + 1); setResposta(null);
+                } else {
+                    const pontuacaoFinal = score + (resposta && resposta.acertou ? 0 : 0);
+                    const novoRanking = [...ranking, { nome: nome.trim(), pontos: pontuacaoFinal }].sort((a, b) => b.pontos - a.pontos).slice(0, 10);
+                    localStorage.setItem('rankingSolidos', JSON.stringify(novoRanking));
+                    setRanking(novoRanking); setStep('final');
+                }
+            };
+
+            const reiniciar = () => { setNome(''); setScore(0); setPerguntaAtual(0); setResposta(null); setStep('menu'); };
+            const atual = perguntas[perguntaAtual];
+
+            return <div className="min-h-screen p-4 flex flex-col items-center justify-center">
+                {step === 'menu' && <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-lg w-full">
+                    <h1 className="text-5xl font-game text-sky-400 mb-4">Mestre dos Sólidos</h1>
+                    <p className="text-slate-400 mb-6">Vértices, arestas, faces e classificação dos sólidos.</p>
+                    <input value={nome} onChange={e => setNome(e.target.value)} onKeyDown={e => e.key === 'Enter' && iniciar()} placeholder="Digite seu nome" aria-label="Nome do aluno" className="w-full max-w-sm p-4 rounded-xl text-slate-900 mb-4" />
+                    <button onClick={iniciar} className="bg-sky-500 hover:bg-sky-600 px-8 py-4 rounded-2xl font-bold text-xl transition-all">Começar Aventura</button>
+                    <button onClick={() => setStep('ranking')} className="block mx-auto mt-5 text-sky-300 underline">Ver ranking</button>
+                </motion.div>}
+
+                {step === 'quiz' && <motion.div initial={{ x: 300 }} animate={{ x: 0 }} className="max-w-2xl w-full bg-slate-800 p-8 rounded-3xl shadow-2xl border-2 border-slate-700">
+                    <div className="flex justify-between text-slate-300 mb-5"><span>Aluno: <strong className="text-white">{nome}</strong></span><span>Pontos: <strong className="text-yellow-300">{score}</strong></span></div>
+                    <p className="text-sky-300 font-bold mb-2">Pergunta {perguntaAtual + 1} de {perguntas.length}</p>
+                    <h2 className="text-2xl font-game mb-6 text-white">{atual.pergunta}</h2>
+                    <img src={atual.imagem} alt="Figura do sólido da questão" className="w-44 h-44 object-contain mx-auto mb-6 bg-white rounded-2xl p-3" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{atual.opcoes.map(opcao => <button key={opcao} onClick={() => responder(opcao)} disabled={!!resposta} className={`p-4 rounded-xl font-bold transition-all ${resposta && opcao === atual.resposta ? 'bg-green-600' : resposta && opcao === resposta.opcao ? 'bg-red-600' : 'bg-slate-700 hover:bg-sky-900'}`}>{opcao}</button>)}</div>
+                    {resposta && <div className={`mt-5 p-4 rounded-xl ${resposta.acertou ? 'bg-green-900' : 'bg-red-900'}`}><strong>{resposta.acertou ? 'Acertou! +10 pontos' : `Resposta correta: ${atual.resposta}`}</strong><p className="mt-1 text-slate-200">{atual.explicacao}</p><button onClick={proximaPergunta} className="mt-4 bg-sky-500 px-5 py-3 rounded-xl font-bold">{perguntaAtual < perguntas.length - 1 ? 'Próxima pergunta' : 'Ver resultado'}</button></div>}
+                </motion.div>}
+
+                {step === 'ranking' && <div className="max-w-lg w-full bg-slate-800 p-8 rounded-3xl border-2 border-yellow-500"><h2 className="text-3xl font-game text-yellow-300 mb-6 text-center">Ranking</h2>{ranking.length ? ranking.map((j, i) => <div key={`${j.nome}-${i}`} className="flex justify-between bg-slate-700 p-3 rounded-lg mb-2"><span>{i + 1}. {j.nome}</span><strong>{j.pontos} pts</strong></div>) : <p className="text-center text-slate-400">Ainda não há pontuações.</p>}<button onClick={() => setStep('menu')} className="mt-6 w-full bg-sky-500 px-5 py-3 rounded-xl font-bold">Voltar</button></div>}
+
+                {step === 'final' && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center"><h1 className="text-5xl font-game text-yellow-400 mb-4">Muito bem, {nome}!</h1><p className="text-2xl mb-3">Você completou o laboratório.</p><div className="text-4xl font-bold text-sky-400 mb-8">{score} pontos</div><button onClick={() => setStep('ranking')} className="bg-yellow-400 text-slate-900 px-6 py-3 rounded-xl font-bold mr-2">Ver ranking</button><button onClick={reiniciar} className="bg-white text-slate-900 px-6 py-3 rounded-xl font-bold">Jogar novamente</button></motion.div>}
+            </div>;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matemática no Folclore - Escola Luiz Antonio</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a237e 0%, #311b92 100%);
+      min-height: 100vh; text-align: center; color: #fff; padding: 20px;
+    }
+    .hidden { display: none !important; }
+    .container {
+      margin-top: 20px; background: rgba(255,255,255,0.95); color: #1a237e;
+      padding: 30px; border-radius: 25px; display: inline-block;
+      max-width: 800px; width: 100%; box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      border: 5px solid #ff9800;
+    }
+    h1 { font-size: 2.2rem; color: #e65100; margin-bottom: 10px; }
+    .badge { background: #ff9800; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
+    input, button {
+      padding: 14px; margin: 10px 0; font-size: 1rem; border-radius: 12px; border: 2px solid #ddd;
+      width: 100%; max-width: 400px; display: block; margin-left: auto; margin-right: auto;
+    }
+    button {
+      background: #ff9800; color: white; font-weight: bold; cursor: pointer; border: none;
+      box-shadow: 0 4px 0 #ef6c00; transition: all 0.2s;
+    }
+    button:hover { background: #ffa726; transform: translateY(-2px); }
+    .code-display { font-size: 3rem; font-weight: bold; color: #e65100; margin: 20px 0; border: 3px dashed #ff9800; padding: 10px; border-radius: 15px; }
+    .option-btn { background: #fff3e0; border: 2px solid #ff9800; color: #e65100; cursor: pointer; padding: 18px; font-size: 1.1rem; font-weight: bold; width: 100%; border-radius: 12px; transition: 0.2s; }
+    .option-btn:hover { background: #ffe0b2; }
+    .math-info { background: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 10px; margin-top: 15px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <div id="start-screen" class="container">
+    <div style="font-size: 3rem;">🪁📐🎲</div>
+    <h1>Matemática Folclórica</h1>
+    <p>Geometria, Probabilidade e Medidas nas Tradições</p>
+    <div style="margin-top: 30px;">
+      <button onclick="goTo('professor-login-screen')">👨‍🏫 Área do Professor</button>
+      <button onclick="goTo('student-login-screen')">👨‍🎓 Área do Aluno</button>
+    </div>
+  </div>
+
+  <div id="professor-login-screen" class="container hidden">
+    <h2>Acesso do Professor</h2>
+    <input type="password" id="prof-password" placeholder="Senha do Professor">
+    <button onclick="loginProfessor()">Entrar</button>
+    <button onclick="location.reload()" style="background:#9e9e9e; box-shadow: 0 4px 0 #757575;">Voltar</button>
+  </div>
+
+  <div id="professor-panel" class="container hidden">
+    <span class="badge">PAINEL DE CONTROLE</span>
+    <h2>Código da Sala</h2>
+    <div class="code-display" id="game-code">------</div>
+    <div id="connected-players" style="margin: 15px 0; font-weight: bold; color: #ef6c00;">Aguardando alunos...</div>
+    <button id="btn-start-game" onclick="startGameSession()" style="background:#2e7d32; box-shadow: 0 4px 0 #1b5e20;">🚀 INICIAR DESAFIO</button>
+    <div id="professor-controls" class="hidden" style="margin-top: 20px;">
+        <button onclick="nextQuestion()" style="background:#0288d1; box-shadow: 0 4px 0 #01579b;">➡️ PRÓXIMA PERGUNTA</button>
+    </div>
+  </div>
+
+  <div id="student-login-screen" class="container hidden">
+    <h2>Entrar no Desafio</h2>
+    <input type="text" id="game-code-input" placeholder="Código da Sala">
+    <input type="text" id="student-name" placeholder="Seu Nome">
+    <button onclick="joinGame()">ENTRAR</button>
+    <button onclick="location.reload()" style="background:#9e9e9e; box-shadow: 0 4px 0 #757575;">Voltar</button>
+  </div>
+
+  <div id="student-game-screen" class="container hidden">
+    <div id="game-status" style="background:#fff3e0; padding: 10px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-weight: bold; color:#e65100;">Aguardando...</div>
+    <div id="question-div" class="hidden">
+        <div id="current-question" style="font-size: 1.3rem; margin: 20px 0; font-weight: bold; color: #311b92; text-align: left;"></div>
+       
+        <!-- ESPAÇO RESPONSIVO PARA EXIBIÇÃO DA FOTO DO JOGO -->
+        <img id="question-image" src="" alt="Imagem Ilustrativa" style="max-width: 100%; max-height: 250px; height: auto; border-radius: 15px; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+       
+        <div id="options-container" style="display: grid; grid-template-columns: 1fr; gap: 12px;"></div>
+        <div id="explanation-box" class="math-info hidden"></div>
+    </div>
+    <div id="waiting-msg" style="text-align: center; font-size: 1.1rem; color: #555;">Prepare seu raciocínio matemático! 🧠</div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyB-fzXlO-PofqHCa0L7p14Y-YSOvAwG-WM",
+        authDomain: "kahootjogosaojoao2.firebaseapp.com",
+        projectId: "kahootjogosaojoao2",
+        databaseURL: "https://kahootjogosaojoao2-default-rtdb.firebaseio.com",
+        storageBucket: "kahootjogosaojoao2.firebasestorage.app"
+    };
+
+    let database = null;
+    let gameCodeGlobal = "";
+    let currentIdx = 0;
+    let myName = "";
+
+    // LISTA DE PERGUNTAS VINCULADAS COM AS SUAS IMAGENS JPEG
+    const questions = [
+        {
+            q: "GEOMETRIA: Ao observar uma PIPA (ou Papagaio) tradicional, qual figura geométrica plana é a base de sua estrutura?",
+            a: "Losango",
+            opts: ["Círculo", "Losango", "Cilindro", "Trapézio"],
+            info: "A pipa possui dois pares de lados paralelos e diagonais que se cruzam, formando um losango.",
+            imagem: "imagens/pergunta0.jpeg"
+        },
+        {
+            q: "GEOMETRIA: O PIÃO, ao girar perfeitamente, descreve a forma de qual sólido geométrico?",
+            a: "Cone",
+            opts: ["Cubo", "Esfera", "Cone", "Pirâmide"],
+            info: "O pião tem uma base circular que afunila até um ponto, assemelhando-se a um cone.",
+            imagem: "imagens/pergunta1.jpeg"
+        },
+        {
+            q: "PROBABILIDADE: Em um jogo de 'Escravos de Jó', se jogarmos com um dado para decidir quem começa, qual a probabilidade de sair o número 5?",
+            a: "1 em 6",
+            opts: ["1 em 2", "1 em 6", "1 em 10", "100%"],
+            info: "Um dado comum tem 6 faces, logo, cada número tem 1 chance em 6.",
+            imagem: "imagens/pergunta2.jpeg"
+        },
+        {
+            q: "MEDIDAS: Na amarelinha, se cada quadrado tem 50 cm de lado, qual a distância total (em metros) que a criança percorre ao pular 10 quadrados in linha reta?",
+            a: "5 metros",
+            opts: ["2 metros", "5 metros", "10 metros", "50 metros"],
+            info: "10 quadrados x 50 cm = 500 cm. Convertendo para metros: 500 / 100 = 5 metros.",
+            imagem: "imagens/pergunta3.jpeg"
+        },
+        {
+            q: "PROPORÇÃO: Uma receita de Cuscuz pede 2 xícaras de flocão para 1 xícara de água. Se dobrarmos a receita para 4 xícaras de flocão, quanta água usaremos?",
+            a: "2 xícaras",
+            opts: ["1 xícara", "2 xícaras", "3 xícaras", "4 xícaras"],
+            info: "Se a proporção é 2:1, ao dobrar o flocão (4), dobramos a água (2).",
+            imagem: "imagens/pergunta4.jpeg"
+        },
+        {
+            q: "CONTAGEM: No folclore, o Saci tem apenas 1 perna. Em um grupo com 15 Sacis e 10 Curupiras (que têm 2 pernas), quantas pernas temos no total?",
+            a: "35 pernas",
+            opts: ["25 pernas", "35 pernas", "40 pernas", "50 pernas"],
+            info: "(15x1) + (10x2) = 15 + 20 = 35 pernas.",
+            imagem: "imagens/pergunta5.jpeg"
+        },
+        {
+            q: "GEOMETRIA: O formato da base de uma 'Casa de Farinha' tradicional, onde se faz o beiju, geralmente é um:",
+            a: "Retângulo",
+            opts: ["Triângulo", "Círculo", "Retângulo", "Hexágono"],
+            info: "A maioria das construções rurais segue a planta retangular para otimizar o espaço das prensas.",
+            imagem: "imagens/pergunta6.jpeg"
+        }
+    ];
+
+    try {
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+    } catch(e) { console.error("Firebase Error", e); }
+
+    function goTo(id) {
+        document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function joinGame() {
+      const code = document.getElementById('game-code-input').value.trim();
+      myName = document.getElementById('student-name').value.trim();
+
+      if (!code || !myName) {
+        alert('Digite o código da sala e seu nome.');
+        return;
+      }
+
+      gameCodeGlobal = code.toUpperCase();
+      currentIdx = 0;
+      goTo('student-game-screen');
+      document.getElementById('game-status').innerText = `Boa sorte, ${myName}!`;
+      document.getElementById('waiting-msg').classList.add('hidden');
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const question = questions[currentIdx];
+      document.getElementById('question-div').classList.remove('hidden');
+      document.getElementById('current-question').innerText = question.q;
+      document.getElementById('question-image').src = question.imagem;
+      document.getElementById('explanation-box').classList.add('hidden');
+      document.getElementById('options-container').innerHTML = question.opts.map(option =>
+        `<button class="option-btn" onclick="answerQuestion('${option.replace(/'/g, "\\'")}')">${option}</button>`
+      ).join('');
+    }
+
+    function answerQuestion(answer) {
+      const question = questions[currentIdx];
+      const explanation = document.getElementById('explanation-box');
+      explanation.innerText = answer === question.a ? `Acertou! ${question.info}` : `A resposta era ${question.a}. ${question.info}`;
+      explanation.classList.remove('hidden');
+      document.getElementById('options-container').innerHTML = currentIdx < questions.length - 1
+        ? '<button onclick="nextQuestion()">PRÓXIMA PERGUNTA</button>'
+        : '<button onclick="location.reload()">JOGAR NOVAMENTE</button>';
+    }
+
+    function nextQuestion() {
+      currentIdx += 1;
+      showQuestion();
+    }
+
+    // LÓGICA DO PROFESSOR
+    function loginProfessor() {
+        if(document.getElementById('prof-password').value === 'professor123') {
+            goTo('professor-panel');
+            gameCodeGlobal = Math.random().toString(36).substr(2, 6).toUpperCase();
+            document.getElementById('game-code').innerText = gameCodeGlobal;
+           
+            database.ref('games/' + gameCodeGlobal).set({
+                status: "waiting",
+                currentQuestion: 0
+            });
+
+            database.ref('games/' + gameCodeGlobal + '/players').on('value', snapshot => {
+                const players = snapshot.val() ? Object.keys(snapshot.val()).join(', ') : "Aguardando alunos...";
+                document.getElementById('connected-players').innerText = "Alunos: " + players;
+            });
+        } else {
+            alert("Senha incorreta!");
+        }
+    }
+
+    function startGameSession() {
+        database.ref('games/' + gameCodeGlobal).update({ status: "playing", currentQuestion: 0 });
+        document.getElementById('btn-start-game').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
