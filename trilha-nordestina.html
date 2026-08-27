@@ -354,8 +354,8 @@
           card.tabIndex = 0;
           card.innerHTML = `<img src="${item.image}" alt="${item.name}"><strong>${item.name}</strong>`;
           const showInfo = () => {
-            document.querySelectorAll('#visual-board .visual-card').forEach(other => other.classList.remove('selected'));
-            card.classList.add('selected');
+            if (!card.isConnected) return;
+            card.remove();
             const info = document.getElementById('visual-info');
             info.innerHTML = `<strong>${item.name}</strong><br>${item.text}<br><button type="button" class="gallery-action" data-gallery-action="question">Responder pergunta</button>`;
             info.classList.remove('hidden');
@@ -398,16 +398,18 @@
               playerScore += 10;
             }
             showReaction(correct, correct ? `Acertou! +10 pontos em ${item.name}.` : `Vamos revisar o texto. A resposta correta é: ${item.answer}.`);
-            const card = document.querySelector(`[data-gallery-item="${item.name}"]`);
-            if (card) card.remove();
             info.classList.add('hidden');
             const remainingCards = document.querySelectorAll('#visual-board .visual-card').length;
-            database.ref('games/' + gameCodeGlobal + '/players/' + playerName.replace(/\./g, '_')).update({
+            const playerUpdate = {
               name: playerName,
               score: playerScore,
               answered: remainingCards === 0,
               answeredQuestion: currentIdx + 1
-            });
+            };
+            database.ref('games/' + gameCodeGlobal + '/players/' + playerName.replace(/\./g, '_')).update(playerUpdate);
+            if (remainingCards === 0) {
+              database.ref('games/' + gameCodeGlobal).update({ status: 'finished' });
+            }
           };
           options.appendChild(button);
         });
