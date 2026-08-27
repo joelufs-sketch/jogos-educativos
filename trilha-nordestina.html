@@ -64,6 +64,10 @@
     .reaction.wrong { background: #fee2e2; color: #991b1b; border: 2px solid #f87171; }
     .reaction-emoji { display: block; font-size: 2.5rem; margin-bottom: 4px; }
     .gallery-action { max-width: 400px; background: #2e7d32; margin: 14px auto 0; }
+    .final-ranking { text-align: left; margin-top: 18px; }
+    .final-ranking h3 { text-align: center; margin-bottom: 10px; color: #2d5a27; }
+    .ranking-row { padding: 10px 12px; border-bottom: 1px solid #c5e1a5; }
+    .ranking-row.current-player { background: #e8f5e9; border-radius: 8px; font-weight: bold; }
     @keyframes reactionPop { from { opacity: 0; transform: scale(.8) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
     @media (max-width: 560px) { .visual-board { grid-template-columns: 1fr; } }
   </style>
@@ -265,7 +269,7 @@
                   startStudentGame(data.currentQ);
                 }
                 else if(data.status === 'finished') {
-                    document.getElementById('question-div').innerHTML = "<h2>Trilha Concluída! 🌿</h2><p>O folclore tá vivo no que a gente come e no chá que a gente toma! Muito obrigado!</p>";
+                  showFinalResults();
                 }
             });
         });
@@ -273,6 +277,7 @@
 
     function startStudentGame(qIndex) {
       displayedQuestionIdx = qIndex;
+      currentIdx = qIndex;
         document.getElementById('game-status').innerText = "📖 TRILHA EM ANDAMENTO - QUESTÃO " + (qIndex + 1);
         document.getElementById('waiting-msg').classList.add('hidden');
         document.getElementById('question-div').classList.remove('hidden');
@@ -345,6 +350,7 @@
         items.forEach(item => {
           const card = document.createElement('div');
           card.className = 'visual-card';
+          card.dataset.galleryItem = item.name;
           card.tabIndex = 0;
           card.innerHTML = `<img src="${item.image}" alt="${item.name}"><strong>${item.name}</strong>`;
           const showInfo = () => {
@@ -362,6 +368,19 @@
         board.appendChild(column);
       }
 
+      function showFinalResults() {
+        database.ref('games/' + gameCodeGlobal + '/players').once('value', snap => {
+          const players = Object.values(snap.val() || {}).sort((a, b) => (b.score || 0) - (a.score || 0));
+          const ranking = players.length
+            ? players.map((player, index) => `<div class="ranking-row ${player.name === playerName ? 'current-player' : ''}">${index + 1}. ${participantEmoji(player.name)} ${player.name} - ${player.score || 0} ponto(s)</div>`).join('')
+            : '<div class="ranking-row">Nenhum participante encontrado.</div>';
+          document.getElementById('question-div').innerHTML = `<h2>Trilha Concluída! 🌿</h2><p>Você fez ${playerScore} ponto(s).</p><div class="final-ranking"><h3>Ranking geral</h3>${ranking}</div>`;
+          document.getElementById('waiting-msg').classList.add('hidden');
+          document.getElementById('question-div').classList.remove('hidden');
+          document.getElementById('game-status').innerText = '🏆 Resultado final';
+        });
+      }
+
       function showGalleryQuestion(item) {
         const info = document.getElementById('visual-info');
         info.innerHTML = `<strong>Pergunta sobre ${item.name}</strong><br>${item.question}<div id="gallery-options" style="display:grid;gap:8px;margin-top:10px;"></div>`;
@@ -372,18 +391,23 @@
           button.className = 'option-btn';
           button.textContent = option;
           button.onclick = () => {
+            if (button.disabled) return;
+            button.disabled = true;
             const correct = option === item.answer;
             if (correct) {
               playerScore += 10;
-              database.ref('games/' + gameCodeGlobal + '/players/' + playerName.replace(/\./g, '_')).update({ name: playerName, score: playerScore });
             }
             showReaction(correct, correct ? `Acertou! +10 pontos em ${item.name}.` : `Vamos revisar o texto. A resposta correta é: ${item.answer}.`);
-            info.innerHTML = `<strong>${correct ? 'Muito bem!' : 'Leia novamente com atenção.'}</strong><br>${correct ? 'Você encontrou a informação correta.' : `A resposta correta é: ${item.answer}.`}<br><button type="button" class="gallery-action" data-gallery-action="back">Voltar às imagens</button>`;
-            database.ref('games/' + gameCodeGlobal + '/players/' + playerName.replace(/\./g, '_')).update({ name: playerName, score: playerScore, answered: true, answeredQuestion: currentIdx + 1 });
-            info.querySelector('[data-gallery-action="back"]').onclick = () => {
-              info.classList.add('hidden');
-              document.querySelectorAll('#visual-board .visual-card').forEach(card => card.classList.remove('selected'));
-            };
+            const card = document.querySelector(`[data-gallery-item="${item.name}"]`);
+            if (card) card.remove();
+            info.classList.add('hidden');
+            const remainingCards = document.querySelectorAll('#visual-board .visual-card').length;
+            database.ref('games/' + gameCodeGlobal + '/players/' + playerName.replace(/\./g, '_')).update({
+              name: playerName,
+              score: playerScore,
+              answered: remainingCards === 0,
+              answeredQuestion: currentIdx + 1
+            });
           };
           options.appendChild(button);
         });
