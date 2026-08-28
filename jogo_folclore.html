@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Matem&aacute;tica do Folclore - Pega-Pipa</title>
+  <style>
+    :root { --ink: #18324a; --paper: #fffdf7; --accent: #d2691e; --sky: #87ceeb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; color: var(--ink); background: linear-gradient(145deg, #f6ead7, #d8f0f2); font-family: Georgia, serif; }
+    main { width: min(800px, 100%); }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+    h1 { margin: 0; font-size: clamp(1.4rem, 4vw, 2.2rem); }
+    a, button { color: inherit; }
+    .back, button { border: 1px solid #c8b99d; border-radius: 6px; background: var(--paper); padding: 9px 13px; font: 700 0.85rem Verdana, sans-serif; cursor: pointer; text-decoration: none; }
+    .back:hover, button:hover { border-color: var(--accent); }
+    .board-wrap { overflow: hidden; border: 3px solid #fff; border-radius: 8px; box-shadow: 0 12px 28px #765c3826; }
+    canvas { display: block; width: 100%; height: auto; background: var(--sky); }
+    .status { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 12px; font: 700 0.9rem Verdana, sans-serif; }
+    .hint { margin: 12px 0 0; color: #536572; font: 0.8rem/1.4 Verdana, sans-serif; }
+  </style>
+</head>
+<body>
+  <main>
+    <header><h1>Matem&aacute;tica do Folclore: Pega-Pipa</h1><a class="back" href="index.html">Voltar ao menu</a></header>
+    <div class="board-wrap"><canvas id="game" width="800" height="600" aria-label="Jogo Pega-Pipa"></canvas></div>
+    <div class="status"><span id="score">Pontos: 0</span><span id="lives">Vidas: 3</span><span id="level">N&iacute;vel: 1</span><button id="pause">Pausar</button><button id="restart">Reiniciar</button></div>
+    <p class="hint">Mova a cesta com as setas, A/D ou o mouse. Pegue pipas, milho e estrelas; evite as pedras.</p>
+  </main>
+  <script>
+    const canvas = document.querySelector('#game');
+    const ctx = canvas.getContext('2d');
+    const scoreLabel = document.querySelector('#score');
+    const livesLabel = document.querySelector('#lives');
+    const levelLabel = document.querySelector('#level');
+    const keys = {};
+    let playerX = 400, score = 0, lives = 3, level = 1, paused = false, over = false;
+    let nextLevel = 100, speed = 2, spawnDelay = 1000, lastSpawn = 0, lastFrame = 0;
+    let items = [], floating = [];
+    const colors = ['#e74c3c', '#3498db', '#9b59b6', '#e67e22'];
+
+    function reset() { playerX = 400; score = 0; lives = 3; level = 1; paused = false; over = false; nextLevel = 100; speed = 2; spawnDelay = 1000; items = []; floating = []; updateLabels(); }
+    function updateLabels() { scoreLabel.textContent = `Pontos: ${score}`; livesLabel.textContent = `Vidas: ${lives}`; levelLabel.textContent = `Nível: ${level}`; }
+    function spawn() {
+      const roll = Math.random();
+      const kind = roll < .3 ? 'pipa' : roll < .65 ? 'milho' : roll < .85 ? 'pedra' : 'estrela';
+      const data = { kind, x: 45 + Math.random() * 710, y: -25, r: kind === 'pipa' ? 25 : kind === 'estrela' ? 20 : 12, vy: speed + Math.random() * 1.2, angle: Math.random() * 6.28 };
+      data.value = kind === 'pipa' ? 20 : kind === 'milho' ? 10 : kind === 'estrela' ? 50 : -1;
+      data.color = kind === 'pipa' ? colors[Math.floor(Math.random() * colors.length)] : kind === 'milho' ? '#f1c40f' : kind === 'estrela' ? '#f7dc6f' : '#95a5a6';
+      items.push(data);
+    }
+    function polygon(points, fill, stroke = '#2c3e50') { ctx.beginPath(); ctx.moveTo(points[0], points[1]); for (let i = 2; i < points.length; i += 2) ctx.lineTo(points[i], points[i + 1]); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = stroke; ctx.stroke(); }
+    function drawItem(item) {
+      ctx.save(); ctx.translate(item.x, item.y); ctx.rotate(Math.sin(item.angle) * .15);
+      if (item.kind === 'pipa') polygon([0, -item.r, item.r * .7, 0, 0, item.r, -item.r * .7, 0], item.color);
+      else if (item.kind === 'estrela') { const points = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5; const r = i % 2 ? item.r * .5 : item.r; points.push(Math.cos(a) * r, Math.sin(a) * r); } polygon(points, item.color, '#f39c12'); }
+      else { ctx.beginPath(); ctx.arc(0, 0, item.r, 0, 6.28); ctx.fillStyle = item.color; ctx.fill(); ctx.strokeStyle = '#7f8c8d'; ctx.stroke(); }
+      ctx.restore();
+    }
+    function addFloating(x, y, text, color) { floating.push({ x, y, text, color, life: 45 }); }
+    function catchItem(item) { if (item.value > 0) { score += item.value; addFloating(item.x, item.y, `+${item.value}`, '#16824d'); } else { lives--; addFloating(item.x, item.y, '-1 vida', '#c0392b'); } if (lives <= 0) over = true; if (score >= nextLevel) { level++; nextLevel += 100 * level; speed += .35; spawnDelay = Math.max(450, spawnDelay - 80); addFloating(400, 280, `NÍVEL ${level}!`, '#e67e22'); } updateLabels(); }
+    function update(delta, now) { if (paused || over) return; if (keys.ArrowLeft || keys.a) playerX -= 8; if (keys.ArrowRight || keys.d) playerX += 8; playerX = Math.max(60, Math.min(740, playerX)); if (now - lastSpawn > spawnDelay) { spawn(); lastSpawn = now; } items.forEach(item => { item.y += item.vy * delta / 16; item.angle += .05; if (item.kind === 'pipa' || item.kind === 'estrela') item.x = Math.max(40, Math.min(760, item.x + Math.sin(item.angle) * .4)); }); for (let i = items.length - 1; i >= 0; i--) { const item = items[i]; const hit = Math.abs(item.x - playerX) < 55 + item.r && Math.abs(item.y - 535) < 25 + item.r; if (hit) { catchItem(item); items.splice(i, 1); } else if (item.y - item.r > 620) items.splice(i, 1); } floating.forEach(text => { text.y -= 1; text.life--; }); floating = floating.filter(text => text.life > 0); }
+    function draw() { ctx.clearRect(0, 0, 800, 600); ctx.fillStyle = '#f4d03f'; ctx.beginPath(); ctx.arc(745, 85, 45, 0, 6.28); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(130, 100, 65, 25, 0, 0, 6.28); ctx.fill(); items.forEach(drawItem); ctx.fillStyle = '#d2691e'; ctx.fillRect(playerX - 55, 510, 110, 45); ctx.strokeStyle = '#8b4513'; ctx.lineWidth = 3; ctx.strokeRect(playerX - 55, 510, 110, 45); ctx.fillStyle = '#8b4513'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center'; ctx.fillText('CESTA', playerX, 495); floating.forEach(text => { ctx.fillStyle = text.color; ctx.font = 'bold 16px Arial'; ctx.fillText(text.text, text.x, text.y); }); if (paused || over) { ctx.fillStyle = '#fffdf7dd'; ctx.fillRect(120, 210, 560, 180); ctx.fillStyle = over ? '#c0392b' : '#2c3e50'; ctx.font = 'bold 28px Georgia'; ctx.fillText(over ? `FIM DE JOGO! Pontos: ${score}` : 'PAUSADO', 400, 290); ctx.font = 'bold 17px Arial'; ctx.fillText(over ? 'Clique em Reiniciar para jogar novamente' : 'Clique em Continuar para voltar', 400, 330); } }
+    function frame(now) { const delta = Math.min(now - lastFrame || 16, 50); lastFrame = now; update(delta, now); draw(); requestAnimationFrame(frame); }
+    addEventListener('keydown', event => { keys[event.key] = true; if (event.key === ' ' || event.key.toLowerCase() === 'p') { paused = !paused; document.querySelector('#pause').textContent = paused ? 'Continuar' : 'Pausar'; } if (event.key.toLowerCase() === 'r') reset(); });
+    addEventListener('keyup', event => { keys[event.key] = false; });
+    canvas.addEventListener('pointermove', event => { const rect = canvas.getBoundingClientRect(); playerX = (event.clientX - rect.left) * 800 / rect.width; });
+    document.querySelector('#pause').addEventListener('click', event => { paused = !paused; event.currentTarget.textContent = paused ? 'Continuar' : 'Pausar'; });
+    document.querySelector('#restart').addEventListener('click', reset);
+    updateLabels(); requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
