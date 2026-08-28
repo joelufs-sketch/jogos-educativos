@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Matemática do Folclore - Arraste e Solte</title>
+  <style>
+    :root { --ink:#18324a; --paper:#fffdf7; --line:#eadfca; --coral:#e76f51; --green:#2a9d8f; --red:#c94c4c; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); font-family:Georgia,'Times New Roman',serif; background:#f5ead8; background-image:radial-gradient(#e4cda8 1px,transparent 1px); background-size:18px 18px; }
+    main { width:min(920px,calc(100% - 28px)); margin:auto; padding:28px 0 48px; }
+    header { display:flex; justify-content:space-between; gap:18px; align-items:start; margin-bottom:18px; }
+    .eyebrow { margin:0 0 7px; color:#c95339; font:700 .75rem Verdana,sans-serif; letter-spacing:.1em; text-transform:uppercase; }
+    h1 { margin:0; font-size:clamp(1.9rem,6vw,3.4rem); line-height:1; }
+    header p:last-child { margin:11px 0 0; color:#607080; font: .95rem/1.45 Verdana,sans-serif; }
+    .hud { min-width:205px; padding:12px 15px; background:var(--paper); border:1px solid var(--line); border-radius:8px; font:700 .8rem/1.8 Verdana,sans-serif; }
+    .hud strong { color:var(--coral); font-size:1.1rem; }
+    .board { padding:20px; background:var(--paper); border:1px solid var(--line); border-radius:8px; box-shadow:0 10px 24px #5a3e1d18; }
+    .instruction { margin:0 0 16px; color:#607080; font: .86rem/1.45 Verdana,sans-serif; }
+    .area { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; padding:16px 8px; background:#dff1f3; border-radius:6px; }
+    .area-label { grid-column:1/-1; margin:0; color:#426b75; font:700 .74rem Verdana,sans-serif; letter-spacing:.08em; text-transform:uppercase; }
+    .target, .toy { display:grid; place-items:center; min-height:116px; border-radius:6px; text-align:center; }
+    .target { border:2px dashed #6d9297; color:#426b75; font:700 .78rem Verdana,sans-serif; }
+    .target.over { background:#c7e7e5; border-color:var(--green); }
+    .toys { margin-top:18px; }
+    .toy { min-height:132px; padding:8px; background:#fff; border:2px solid var(--line); cursor:grab; user-select:none; touch-action:none; }
+    .toy:active { cursor:grabbing; }
+    .toy.dragging { opacity:.55; }
+    .shape { width:62px; height:62px; display:block; }
+    .kite { background:#e74c3c; clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%); }
+    .top { background:#3498db; border-radius:50% 50% 45% 45%; transform:scaleX(.8); }
+    .hopscotch { background:#27ae60; border-radius:4px; }
+    .shuttlecock { background:#f39c12; clip-path:polygon(50% 0,100% 100%,0 100%); }
+    .toy-name { margin-top:6px; font:700 .78rem Verdana,sans-serif; }
+    .message { min-height:25px; margin:16px 0 0; font:700 .9rem Verdana,sans-serif; }
+    .message.good { color:#18766d; } .message.bad { color:#a43b3b; }
+    button { padding:11px 15px; color:white; background:var(--coral); border:2px solid var(--coral); border-radius:6px; font:700 .85rem Verdana,sans-serif; cursor:pointer; }
+    button:hover,button:focus-visible { background:#c95339; outline:3px solid #f4c95d; outline-offset:2px; }
+    .actions { margin-top:14px; display:flex; gap:10px; align-items:center; }
+    @media(max-width:620px) { header{display:block}.hud{margin-top:15px}.area{grid-template-columns:repeat(2,1fr)}.target,.toy{min-height:105px}.area-label{grid-column:1/-1} }
+  </style>
+</head>
+<body>
+  <main>
+    <header><div><p class="eyebrow">Jogo de associa&ccedil;&atilde;o</p><h1>Matem&aacute;tica do Folclore</h1><p>Arraste cada brinquedo para a forma certa.</p></div><div class="hud">Pontos: <strong id="score">0</strong><br>Vidas: <span id="lives">3</span> &nbsp; N&iacute;vel: <span id="level">1</span><br>Combo: x<span id="combo">1</span></div></header>
+    <section class="board"><p class="instruction">Use o mouse ou toque na tela. Voc&ecirc; perde uma vida quando solta o brinquedo no lugar errado.</p><div class="area" id="targets"><p class="area-label">Formas geom&eacute;tricas</p></div><div class="area toys" id="toys"><p class="area-label">Brinquedos</p></div><p class="message" id="message" aria-live="polite"></p><div class="actions"><button id="restart">Recome&ccedil;ar</button></div></section>
+  </main>
+  <script>
+    const allTypes = [{ id:'pipa', name:'Pipa', shape:'kite' }, { id:'peao', name:'Pi&atilde;o', shape:'top' }, { id:'amarelinha', name:'Amarelinha', shape:'hopscotch' }, { id:'peteca', name:'Peteca', shape:'shuttlecock' }];
+    const state = { level:1, score:0, lives:3, combo:0, active:null };
+    const targets = document.querySelector('#targets'), toys = document.querySelector('#toys'), message = document.querySelector('#message');
+    const shuffle = values => values.sort(() => Math.random() - .5);
+    function updateHud() { document.querySelector('#score').textContent=state.score; document.querySelector('#lives').textContent=state.lives; document.querySelector('#level').textContent=state.level; document.querySelector('#combo').textContent=Math.max(1,state.combo); }
+    function shape(type) { return `<span class="shape ${type.shape}" aria-hidden="true"></span>`; }
+    function startLevel() {
+      targets.querySelectorAll('.target').forEach(item=>item.remove()); toys.querySelectorAll('.toy').forEach(item=>item.remove());
+      const selected=shuffle(allTypes.slice()).slice(0,Math.min(1+state.level,4));
+      selected.forEach(type=>{ const target=document.createElement('div'); target.className='target'; target.dataset.type=type.id; target.innerHTML=`${shape(type)}<span>${type.name}</span>`; targets.append(target); });
+      shuffle(selected.slice()).forEach(type=>{ const toy=document.createElement('div'); toy.className='toy'; toy.draggable=true; toy.dataset.type=type.id; toy.innerHTML=`${shape(type)}<span class="toy-name">${type.name}</span>`; toy.addEventListener('dragstart',()=>{state.active=toy;toy.classList.add('dragging')}); toy.addEventListener('dragend',()=>toy.classList.remove('dragging')); toy.addEventListener('pointerdown',()=>state.active=toy); toys.append(toy); });
+      targets.querySelectorAll('.target').forEach(target=>{ target.addEventListener('dragover',event=>{event.preventDefault();target.classList.add('over')}); target.addEventListener('dragleave',()=>target.classList.remove('over')); target.addEventListener('drop',event=>{event.preventDefault();target.classList.remove('over');place(target)}); target.addEventListener('pointerup',()=>place(target)); });
+      message.textContent=`N&iacute;vel ${state.level}: encontre ${selected.length} pares.`; message.className='message'; updateHud();
+    }
+    function place(target) {
+      if(!state.active) return; const toy=state.active; state.active=null;
+      if(toy.dataset.type===target.dataset.type) { state.combo++; const points=10+2*(state.combo-1); state.score+=points; toy.remove(); target.remove(); message.textContent=`Acertou! +${points} pontos.`; message.className='message good'; updateHud(); if(!toys.querySelector('.toy')) { state.level++; state.combo=0; setTimeout(startLevel,500); } }
+      else { state.lives--; state.combo=0; message.textContent='Quase! Esse brinquedo combina com outra forma.'; message.className='message bad'; updateHud(); if(state.lives<=0) { message.textContent=`Fim de jogo! Voc&ecirc; fez ${state.score} pontos. Clique em Recome&ccedil;ar.`; toys.querySelectorAll('.toy').forEach(item=>item.draggable=false); } }
+    }
+    function restart() { state.level=1; state.score=0; state.lives=3; state.combo=0; startLevel(); }
+    document.querySelector('#restart').addEventListener('click',restart); startLevel();
+  </script>
+</body>
+</html>
