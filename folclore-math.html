@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Folclore Math</title>
+  <style>
+    :root { color-scheme: light; --ink: #18324a; --muted: #607080; --paper: #fffdf7; --coral: #e76f51; --yellow: #f4c95d; --green: #2a9d8f; --red: #c94c4c; --line: #eadfca; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: var(--ink); font-family: Georgia, 'Times New Roman', serif; background: #f5ead8; background-image: radial-gradient(#e4cda8 1px, transparent 1px); background-size: 18px 18px; }
+    main { width: min(820px, calc(100% - 32px)); margin: 0 auto; padding: 38px 0 56px; }
+    header { display: flex; justify-content: space-between; gap: 20px; align-items: start; margin-bottom: 24px; }
+    .eyebrow { margin: 0 0 8px; color: #c95339; font: 700 .78rem/1.2 Verdana, sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(2.1rem, 7vw, 4rem); line-height: .98; }
+    header p:last-child { max-width: 540px; margin: 14px 0 0; color: var(--muted); font: 1rem/1.5 Verdana, sans-serif; }
+    .score { min-width: 150px; padding: 14px 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; font: 700 .78rem/1.8 Verdana, sans-serif; text-align: right; }
+    .score strong { color: var(--coral); font-size: 1.2rem; }
+    .panel { padding: clamp(22px, 5vw, 38px); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 28px rgba(90, 62, 29, .1); }
+    .panel h2 { margin: 0 0 10px; font-size: clamp(1.45rem, 4vw, 2rem); }
+    .question { margin: 0 0 24px; font-size: clamp(1.15rem, 3vw, 1.45rem); line-height: 1.45; white-space: pre-line; }
+    .options { display: grid; gap: 10px; }
+    button { width: 100%; padding: 14px 16px; color: var(--ink); font: 700 1rem Georgia, serif; text-align: left; background: #fff; border: 2px solid var(--line); border-radius: 6px; cursor: pointer; transition: transform 140ms ease, border-color 140ms ease, background 140ms ease; }
+    button:hover:not(:disabled), button:focus-visible { border-color: var(--coral); transform: translateX(3px); outline: none; }
+    button:disabled { cursor: default; }
+    button.correct { color: #15584f; background: #e1f3ef; border-color: var(--green); }
+    button.wrong { color: #8c3030; background: #fbe8e5; border-color: var(--red); }
+    .feedback { margin-top: 20px; padding: 16px; border-left: 5px solid var(--green); background: #e1f3ef; font: .95rem/1.5 Verdana, sans-serif; }
+    .feedback.wrong { border-color: var(--red); background: #fbe8e5; }
+    .feedback strong { display: block; margin-bottom: 6px; font-size: 1.05rem; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+    .actions button { width: auto; text-align: center; background: var(--coral); border-color: var(--coral); color: white; }
+    .actions button.secondary { color: var(--ink); background: transparent; border-color: var(--line); }
+    .categories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 22px; }
+    .categories button { text-align: center; }
+    .result { text-align: center; }
+    .result h2 { margin-bottom: 18px; }
+    .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 22px 0; }
+    .result-grid div { padding: 14px 8px; background: #fff; border: 1px solid var(--line); border-radius: 6px; font: .8rem/1.4 Verdana, sans-serif; }
+    .result-grid strong { display: block; color: var(--coral); font-size: 1.4rem; }
+    @media (max-width: 600px) { header { display: block; } .score { margin-top: 18px; text-align: left; } .categories, .result-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><p class="eyebrow">Matem&aacute;tica e tradi&ccedil;&atilde;o popular</p><h1>Folclore Math</h1><p>Aprenda brincando com geometria, probabilidade e propor&ccedil;&otilde;es.</p></div>
+      <div class="score" aria-live="polite">Pontos<br><strong id="score">0</strong><br>Quest&otilde;es: <span id="progress">0/0</span></div>
+    </header>
+    <section class="panel" id="game" aria-live="polite"></section>
+  </main>
+  <script>
+    const categories = {
+      geometria: { title: 'Geometria - Brinquedos e Brincadeiras', questions: [
+        ['Uma pipa em forma de losango tem diagonais de 60 cm e 40 cm.\nQual &eacute; a &aacute;rea da pipa?', ['1200 cm&sup2;', '2400 cm&sup2;', '1800 cm&sup2;', '900 cm&sup2;'], 0, 'A = (60 x 40) / 2 = 1200 cm&sup2;', 10],
+        ['Um pi&atilde;o tem formato de cone com altura 8 cm e raio 3 cm.\nQual &eacute; o volume aproximado? (use pi = 3)', ['72 cm&sup3;', '24 cm&sup3;', '36 cm&sup3;', '48 cm&sup3;'], 0, 'V = (1/3) x 3 x 3&sup2; x 8 = 72 cm&sup3;', 15],
+        ['Uma amarelinha tem 10 quadrados de 30 cm x 30 cm cada.\nQual &eacute; o per&iacute;metro de um quadrado?', ['60 cm', '120 cm', '90 cm', '900 cm'], 1, 'P = 4 x 30 = 120 cm', 10],
+        ['Se desenharmos uma pipa quadrada com lado 50 cm,\nqual ser&aacute; sua &aacute;rea?', ['2500 cm&sup2;', '2000 cm&sup2;', '1500 cm&sup2;', '3000 cm&sup2;'], 0, 'A = 50&sup2; = 2500 cm&sup2;', 10],
+        ['Um pi&atilde;o completa 3 rota&ccedil;&otilde;es por segundo.\nQuantas rota&ccedil;&otilde;es faz em 5 segundos?', ['8 rota&ccedil;&otilde;es', '15 rota&ccedil;&otilde;es', '12 rota&ccedil;&otilde;es', '20 rota&ccedil;&otilde;es'], 1, '3 x 5 = 15 rota&ccedil;&otilde;es', 10],
+        ['A amarelinha tem 2 casas duplas e 8 simples.\nQual a propor&ccedil;&atilde;o de casas simples?', ['1/5', '4/5', '2/5', '3/5'], 1, '8 casas em 10: 8/10 = 4/5', 15]
+      ] },
+      probabilidade: { title: 'Probabilidade - Jogos Populares', questions: [
+        ['Ao lan&ccedil;ar uma moeda, qual a probabilidade de sair cara?', ['1/4', '1/2', '1/3', '1/5'], 1, 'Uma cara em duas possibilidades: 1/2.', 10],
+        ['Em um dado comum, qual a chance de sair n&uacute;mero par?', ['1/6', '1/3', '1/2', '2/3'], 2, 'Os pares s&atilde;o 2, 4 e 6: 3 em 6 = 1/2.', 10],
+        ['Se lan&ccedil;armos 2 dados, qual a chance de sair dois 6?', ['1/36', '1/12', '1/6', '1/18'], 0, '(1/6) x (1/6) = 1/36.', 20],
+        ['No jogo de Pedra, Papel, Tesoura, qual a probabilidade\nde ganhar na primeira rodada?', ['1/2', '1/3', '1/4', '0'], 1, 'Uma op&ccedil;&atilde;o vencedora em 3: 1/3.', 15],
+        ['Se um jogo foi jogado 100 vezes e voc&ecirc; ganhou 40 vezes,\nqual sua frequ&ecirc;ncia relativa de vit&oacute;ria?', ['0.3', '0.4', '0.5', '0.6'], 1, '40/100 = 0.4.', 10],
+        ['Qual a probabilidade de N&Atilde;O sair 6 em um dado?', ['1/6', '5/6', '1/2', '2/3'], 1, 'Cinco resultados n&atilde;o s&atilde;o 6: 5/6.', 10]
+      ] },
+      proporcoes: { title: 'Propor&ccedil;&otilde;es - Receitas Tradicionais', questions: [
+        ['Uma receita de bolo usa 2 x&iacute;caras de leite e 1 de fub&aacute;.\nSe duplicarmos a receita, quantas x&iacute;caras de leite usaremos?', ['2 x&iacute;caras', '3 x&iacute;caras', '4 x&iacute;caras', '5 x&iacute;caras'], 2, '2 x 2 = 4 x&iacute;caras.', 10],
+        ['Uma receita para 8 pessoas usa 2 ovos.\nPara 4 pessoas, quantos ovos usaremos?', ['1 ovo', '2 ovos', '3 ovos', '4 ovos'], 0, 'Reduzindo pela metade: 2 / 2 = 1 ovo.', 10],
+        ['Se 1 x&iacute;cara = 240 ml, quanto &eacute; 1/2 x&iacute;cara em ml?', ['480 ml', '240 ml', '120 ml', '60 ml'], 2, '240 / 2 = 120 ml.', 10],
+        ['Uma receita usa 3 x&iacute;caras de leite para 1 de a&ccedil;&uacute;car.\nQual a propor&ccedil;&atilde;o leite:a&ccedil;&uacute;car?', ['1:3', '3:1', '2:1', '1:2'], 1, 'A propor&ccedil;&atilde;o &eacute; 3:1.', 15],
+        ['Se a receita original custa R$ 8,00 para 4 pessoas,\nquanto custar&aacute; para 8 pessoas?', ['R$ 8,00', 'R$ 16,00', 'R$ 4,00', 'R$ 32,00'], 1, 'Dobrando a receita: R$ 8,00 x 2 = R$ 16,00.', 10],
+        ['Uma receita triplicada usa 9 ovos.\nQuantos ovos a receita original usava?', ['2 ovos', '3 ovos', '4 ovos', '6 ovos'], 1, '9 / 3 = 3 ovos.', 15]
+      ] }
+    };
+    const state = { questions: [], index: 0, score: 0, correct: 0, wrong: 0, combo: 0, maxCombo: 0 };
+    const game = document.querySelector('#game');
+    const score = document.querySelector('#score');
+    const progress = document.querySelector('#progress');
+    const shuffle = items => items.sort(() => Math.random() - .5);
+    function renderStart() {
+      game.innerHTML = '<h2>Escolha uma categoria</h2><p class="question">Cada rodada tem 6 perguntas. Leia com calma e escolha a resposta correta.</p><div class="categories"><button data-category="geometria">Geometria</button><button data-category="probabilidade">Probabilidade</button><button data-category="proporcoes">Propor&ccedil;&otilde;es</button></div><div class="actions"><button id="total">Desafio total</button></div>';
+      game.querySelectorAll('[data-category]').forEach(button => button.addEventListener('click', () => start([categories[button.dataset.category]])));
+      game.querySelector('#total').addEventListener('click', () => start(Object.values(categories)));
+    }
+    function start(selected) {
+      state.questions = shuffle(selected.flatMap(category => category.questions.map(question => [...question]))); state.index = 0; state.score = 0; state.correct = 0; state.wrong = 0; state.combo = 0; state.maxCombo = 0; renderQuestion();
+    }
+    function renderQuestion() {
+      const question = state.questions[state.index]; progress.textContent = `${state.index}/${state.questions.length}`; score.textContent = state.score;
+      game.innerHTML = `<h2>Quest&atilde;o ${state.index + 1}</h2><p class="question">${question[0]}</p><div class="options">${question[1].map((option, index) => `<button data-answer="${index}">${String.fromCharCode(65 + index)}. ${option}</button>`).join('')}</div>`;
+      game.querySelectorAll('[data-answer]').forEach(button => button.addEventListener('click', () => answer(Number(button.dataset.answer))));
+    }
+    function answer(choice) {
+      const question = state.questions[state.index]; const correct = choice === question[2]; state.questions[state.index].answered = true; state.correct += correct ? 1 : 0; state.wrong += correct ? 0 : 1; state.combo = correct ? state.combo + 1 : 0; state.maxCombo = Math.max(state.maxCombo, state.combo); const points = correct ? question[4] + (state.combo - 1) * 5 : 0; state.score += points; score.textContent = state.score;
+      game.querySelectorAll('[data-answer]').forEach((button, index) => { button.disabled = true; if (index === question[2]) button.classList.add('correct'); if (index === choice && !correct) button.classList.add('wrong'); });
+      game.insertAdjacentHTML('beforeend', `<div class="feedback ${correct ? '' : 'wrong'}"><strong>${correct ? 'Acertou!' : 'Quase! A resposta correta est&aacute; destacada.'}</strong>${question[3]}${correct && points > question[4] ? ` Combo x${state.combo}: +${points} pontos.` : ''}</div><div class="actions"><button id="next">${state.index + 1 === state.questions.length ? 'Ver resultado' : 'Pr&oacute;xima quest&atilde;o'}</button></div>`);
+      game.querySelector('#next').addEventListener('click', () => state.index + 1 === state.questions.length ? renderResult() : (state.index++, renderQuestion()));
+    }
+    function renderResult() { progress.textContent = `${state.questions.length}/${state.questions.length}`; game.innerHTML = `<div class="result"><h2>Resultado final</h2><p class="question">${state.correct === state.questions.length ? 'Perfei&ccedil;&atilde;o! Voc&ecirc; foi muito bem.' : state.correct >= state.questions.length * .8 ? 'Excelente! Parab&eacute;ns!' : 'Continue estudando e tente novamente!'}</p><div class="result-grid"><div><strong>${state.correct}/${state.questions.length}</strong>Acertos</div><div><strong>${state.score}</strong>Pontos</div><div><strong>x${state.maxCombo}</strong>Maior combo</div></div><div class="actions"><button id="again">Jogar novamente</button><button class="secondary" id="home">Escolher categoria</button></div></div>`; game.querySelector('#again').addEventListener('click', () => start([ { questions: state.questions } ])); game.querySelector('#home').addEventListener('click', renderStart); }
+    renderStart();
+  </script>
+</body>
+</html>
