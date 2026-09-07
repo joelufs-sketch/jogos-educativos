@@ -230,7 +230,12 @@
       document.querySelector("#total-justificados").textContent = totais.J;
       document.querySelector("#total-faltas").textContent = totais.F;
       const nomesStatus = { P: "Presente", J: "Justificado", F: "Falta" };
-      document.querySelector("#lista-resumo").innerHTML = turmas[turmaAtual].map((nome, indice) => `<li><strong>${nome}</strong> — ${nomesStatus[estado[indice]]}</li>`).join("");
+      const faltososOuJustificados = turmas[turmaAtual]
+        .map((nome, indice) => ({ nome, status: estado[indice] }))
+        .filter((aluno) => aluno.status === "J" || aluno.status === "F");
+      document.querySelector("#lista-resumo").innerHTML = faltososOuJustificados.length
+        ? faltososOuJustificados.map((aluno) => `<li><strong>${aluno.nome}</strong> — ${nomesStatus[aluno.status]}</li>`).join("")
+        : "<li>Nenhum aluno faltoso ou justificado.</li>";
     }
     function baixarCsv() {
       const linhas = [["Turma", turmaAtual], ["Data", hoje], [], ["Aluno", "Status"]];
