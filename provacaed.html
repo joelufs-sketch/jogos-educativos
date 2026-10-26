@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel do Professor – Leitura de Prova + Gabarito</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root { --azul: #0b3d91; --verde: #0a7a34; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f8; margin: 0; padding: 20px; color: #222; }
+    .container { max-width: 920px; margin: 0 auto; }
+    h1 { color: var(--azul); text-align: center; margin-bottom: 4px; }
+    .sub { text-align: center; color: #555; margin-bottom: 24px; }
+    .card { background: white; border-radius: 12px; padding: 22px; margin-bottom: 20px; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+    label { font-weight: 600; display: block; margin-bottom: 6px; }
+    select, input[type=text] { width: 100%; padding: 10px; font-size: 16px; border: 2px solid #ccc; border-radius: 8px; }
+    button { background: var(--azul); color: white; border: none; padding: 12px 22px; font-size: 16px; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+    button:hover { filter: brightness(1.1); }
+    button.secondary { background: #555; }
+    button.success { background: var(--verde); }
+    #reader { width: 100%; max-width: 400px; margin: 12px auto; }
+    .bolhas { display: flex; gap: 18px; justify-content: center; margin: 14px 0; }
+    .bolha { width: 48px; height: 48px; border: 3px solid #333; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; font-size: 18px; user-select: none; }
+    .bolha.selected { background: #111; color: white; }
+    .questao-linha { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+    .resultado { font-size: 22px; font-weight: bold; text-align: center; padding: 16px; border-radius: 10px; }
+    .acerto { background: #d4edda; color: #155724; }
+    .erro { background: #f8d7da; color: #721c24; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #e9ecef; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Painel do Professor</h1>
+    <p class="sub">Avaliação Contínua – Caderno M0702-A • 5 questões objetivas</p>
+
+    <!-- ETAPA 1 -->
+    <div class="card" id="step1">
+      <h2>1. Escolha o aluno</h2>
+      <label>Aluno</label>
+      <select id="aluno">
+        <option value="">-- selecione --</option>
+        <option value="ana">Ana Clara Souza</option>
+        <option value="bruno">Bruno Oliveira</option>
+        <option value="carla">Carla Mendes</option>
+        <option value="diego">Diego Santos</option>
+        <option value="eduarda">Eduarda Lima</option>
+      </select>
+      <button onclick="irParaQR()">Continuar →</button>
+    </div>
+
+    <!-- ETAPA 2 -->
+    <div class="card" id="step2" style="display:none">
+      <h2>2. Ler QR Code da Prova</h2>
+      <p>Aponte a câmera para o QR Code impresso na prova do aluno<br>
+         <small>ou digite o código manualmente</small></p>
+      <div id="reader"></div>
+      <label style="margin-top:14px">Código da Prova (manual)</label>
+      <input type="text" id="codigoManual" placeholder="Ex: PROVA-M0702-A01-2026" />
+      <button onclick="validarCodigo()">Validar Código</button>
+      <button class="secondary" onclick="voltar(1)">← Voltar</button>
+    </div>
+
+    <!-- ETAPA 3 -->
+    <div class="card" id="step3" style="display:none">
+      <h2>3. Ler Gabarito do Aluno</h2>
+      <p>Clique nas bolhas conforme o aluno marcou no cartão-resposta:</p>
+
+      <div id="areaBolhas"></div>
+
+      <button class="success" onclick="corrigir()">Corrigir Automaticamente</button>
+      <button class="secondary" onclick="voltar(2)">← Voltar</button>
+    </div>
+
+    <!-- RESULTADO -->
+    <div class="card" id="step4" style="display:none">
+      <h2>Resultado da Correção</h2>
+      <div id="resultadoFinal"></div>
+      <button onclick="novaCorrecao()">Nova Correção</button>
+    </div>
+  </div>
+
+<script>
+  // ========== GABARITO OFICIAL ==========
+  const GABARITO = {
+    "PROVA-M0702-A01-2026": {
+      titulo: "M0702-A01 – Matemática 7º Ano",
+      respostas: {1:"B", 2:"A", 3:"C", 4:"B", 5:"A"},
+      valor: 2.0
+    }
+  };
+
+  let alunoAtual = "";
+  let codigoProva = "";
+  let respostasAluno = {1:"",2:"",3:"",4:"",5:""};
+  let html5QrCode = null;
+
+  function irParaQR() {
+    alunoAtual = document.getElementById("aluno").value;
+    if (!alunoAtual) return alert("Selecione um aluno");
+    document.getElementById("step1").style.display = "none";
+    document.getElementById("step2").style.display = "block";
+    iniciarScanner();
+  }
+
+  function iniciarScanner() {
+    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decoded) => {
+        document.getElementById("codigoManual").value = decoded;
+        validarCodigo();
+      },
+      () => {}
+    ).catch(err => console.log("Câmera não disponível:", err));
+  }
+
+  function validarCodigo() {
+    const cod = document.getElementById("codigoManual").value.trim().toUpperCase();
+    if (!GABARITO[cod]) {
+      alert("Código de prova não reconhecido!\nUse: PROVA-M0702-A01-2026");
+      return;
+    }
+    codigoProva = cod;
+    if (html5QrCode) html5QrCode.stop();
+    document.getElementById("step2").style.display = "none";
+    document.getElementById("step3").style.display = "block";
+    montarBolhas();
+  }
+
+  function montarBolhas() {
+    let html = "";
+    for (let q = 1; q <= 5; q++) {
+      html += `<div class="questao-linha">
+        <strong style="width:30px">0${q}</strong>
+        <div class="bolhas" id="q${q}">
+          ${["A","B","C","D"].map(l =>
+            `<div class="bolha" onclick="marcar(${q},'${l}')">${l}</div>`
+          ).join("")}
+        </div>
+      </div>`;
+    }
+    document.getElementById("areaBolhas").innerHTML = html;
+  }
+
+  function marcar(q, letra) {
+    respostasAluno[q] = letra;
+    const container = document.getElementById("q"+q);
+    [...container.children].forEach(b => b.classList.remove("selected"));
+    event.target.classList.add("selected");
+  }
+
+  function corrigir() {
+    const gaba = GABARITO[codigoProva];
+    let acertos = 0;
+    let linhas = "";
+
+    for (let q = 1; q <= 5; q++) {
+      const correta = gaba.respostas[q];
+      const marcada = respostasAluno[q] || "-";
+      const ok = marcada === correta;
+      if (ok) acertos++;
+      linhas += `<tr>
+        <td>0${q}</td>
+        <td>${marcada}</td>
+        <td>${correta}</td>
+        <td style="color:${ok?'green':'red'};font-weight:bold">${ok?'ACERTO':'ERRO'}</td>
+      </tr>`;
+    }
+
+    const nota = (acertos * gaba.valor).toFixed(1);
+    const nomeAluno = document.getElementById("aluno").selectedOptions[0].text;
+
+    document.getElementById("resultadoFinal").innerHTML = `
+      <p><strong>Aluno:</strong> ${nomeAluno}</p>
+      <p><strong>Prova:</strong> ${gaba.titulo}</p>
+      <div class="resultado ${acertos>=3?'acerto':'erro'}">
+        Nota: ${nota} / 10,0 &nbsp;|&nbsp; Acertos: ${acertos}/5
+      </div>
+      <table>
+        <thead><tr><th>Questão</th><th>Marcou</th><th>Gabarito</th><th>Status</th></tr></thead>
+        <tbody>${linhas}</tbody>
+      </table>
+    `;
+
+    document.getElementById("step3").style.display = "none";
+    document.getElementById("step4").style.display = "block";
+  }
+
+  function voltar(n) {
+    document.getElementById("step1").style.display = n===1?"block":"none";
+    document.getElementById("step2").style.display = n===2?"block":"none";
+    document.getElementById("step3").style.display = "none";
+    document.getElementById("step4").style.display = "none";
+  }
+
+  function novaCorrecao() {
+    location.reload();
+  }
+</script>
+</body>
+</html>
