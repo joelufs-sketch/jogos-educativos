@@ -1,0 +1,26 @@
+{
+  "prova": "M0702-B12",
+  "titulo": "Avaliação de Matemática – 7º Ano",
+  "codigo_qr": "PROVA-M0702-B12-2026",
+  "total_questoes": 12,
+  "valor_questao": 0.833,
+  "gabarito": {
+    "1": "B", "2": "A", "3": "C", "4": "B",
+    "5": "D", "6": "A", "7": "C", "8": "B",
+    "9": "A", "10": "D", "11": "C", "12": "B"
+  },
+  "conteudos": {
+    "1": "Porcentagem",
+    "2": "Expressões numéricas",
+    "3": "Área do retângulo",
+    "4": "Frações equivalentes",
+    "5": "Ângulos do triângulo",
+    "6": "Números inteiros",
+    "7": "Média aritmética",
+    "8": "Perímetro",
+    "9": "Regra de três",
+    "10": "Potenciação",
+    "11": "Volume do cubo",
+    "12": "Leitura de gráfico"
+  }
+}

@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b3d91" />
+  <title>Avaliação Matemática 7º Ano</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <style>
+    :root {
+      --azul: #0b3d91;
+      --azul-escuro: #072c6b;
+      --verde: #0a7a34;
+      --vermelho: #c1121f;
+      --cinza: #f1f5f9;
+      --raio: 16px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--cinza);
+      color: #1e293b;
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--azul), var(--azul-escuro));
+      color: white;
+      padding: 18px 16px 22px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    }
+
+    .header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+    .header p { margin: 4px 0 0; font-size: 0.85rem; opacity: 0.9; }
+
+    .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+
+    .card {
+      background: white;
+      border-radius: var(--raio);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.06);
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: white;
+      background: var(--azul);
+      cursor: pointer;
+      margin-top: 10px;
+      transition: 0.2s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-verde { background: var(--verde); }
+    .btn-vermelho { background: var(--vermelho); }
+    .btn-outline {
+      background: white;
+      color: var(--azul);
+      border: 2px solid var(--azul);
+    }
+
+    /* Bolhas de resposta */
+    .questao { margin-bottom: 28px; }
+    .questao h3 {
+      font-size: 1.05rem;
+      margin: 0 0 12px;
+      line-height: 1.4;
+    }
+    .opcoes { display: grid; gap: 10px; }
+    .opcao {
+      padding: 14px 16px;
+      border: 2px solid #cbd5e1;
+      border-radius: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: 0.15s;
+      background: #fff;
+    }
+    .opcao:active { background: #e2e8f0; }
+    .opcao.selecionada {
+      border-color: var(--azul);
+      background: #dbeafe;
+      font-weight: 600;
+    }
+    .letra {
+      width: 32px; height: 32px;
+      background: #e2e8f0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .opcao.selecionada .letra {
+      background: var(--azul);
+      color: white;
+    }
+
+    /* Resultado */
+    .nota-box {
+      text-align: center;
+      padding: 24px;
+      border-radius: var(--raio);
+      margin: 16px 0;
+      font-size: 1.6rem;
+      font-weight: 800;
+    }
+    .nota-boa { background: #dcfce7; color: #166534; }
+    .nota-media { background: #fef9c3; color: #854d0e; }
+    .nota-ruim { background: #fee2e2; color: #991b1b; }
+
+    .progresso {
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 99px;
+      overflow: hidden;
+      margin: 12px 0 20px;
+    }
+    .progresso-bar {
+      height: 100%;
+      background: var(--azul);
+      transition: width 0.3s;
+    }
+
+    select, input[type=text] {
+      width: 100%;
+      padding: 14px;
+      font-size: 1rem;
+      border: 2px solid #cbd5e1;
+      border-radius: 12px;
+      margin-top: 6px;
+    }
+
+    .hidden { display: none !important; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    th, td { padding: 10px 6px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+    th { background: #f8fafc; }
+
+    .footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 30px;
+    }
+
+    /* Modo professor */
+    .badge {
+      display: inline-block;
+      background: #dbeafe;
+      color: var(--azul);
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1 id="tituloHeader">Avaliação de Matemática</h1>
+    <p id="subtituloHeader">7º Ano • 12 questões</p>
+  </div>
+
+  <div class="container">
+
+    <!-- TELA INICIAL -->
+    <div id="telaInicio">
+      <div class="card">
+        <h2 style="margin-top:0">Olá!</h2>
+        <p>Escolha o modo de uso:</p>
+
+        <button class="btn" onclick="iniciarAluno()">📱 Sou Aluno – Fazer a Prova</button>
+        <button class="btn btn-outline" onclick="iniciarProfessor()" style="margin-top:12px">👩‍🏫 Sou Professor – Corrigir</button>
+      </div>
+
+      <div class="card" style="font-size:0.9rem;color:#64748b">
+        <strong>Código da Prova:</strong><br>
+        <span style="font-size:1.1rem;color:var(--azul)">PROVA-M0702-B12-2026</span>
+      </div>
+    </div>
+
+    <!-- ========== MODO ALUNO ========== -->
+    <div id="telaAluno" class="hidden">
+      <div class="card">
+        <label><strong>Seu nome</strong></label>
+        <select id="selectAluno">
+          <option value="">Selecione seu nome...</option>
+        </select>
+
+        <div class="progresso">
+          <div class="progresso-bar" id="barraProgresso" style="width:0%"></div>
+        </div>
+        <p style="text-align:center;font-size:0.9rem;color:#64748b">
+          <span id="contadorQuestao">0</span>/12 respondidas
+        </p>
+      </div>
+
+      <div id="areaQuestoes"></div>
+
+      <button class="btn btn-verde" onclick="finalizarProvaAluno()">
+        Entregar Prova
+      </button>
+      <button class="btn btn-outline" onclick="voltarInicio()" style="margin-top:10px">Voltar</button>
+    </div>
+
+    <!-- ========== MODO PROFESSOR ========== -->
+    <div id="telaProfessor" class="hidden">
+      <div class="card">
+        <span class="badge">MODO PROFESSOR</span>
+        <h2 style="margin:10px 0 6px">Correção Rápida</h2>
+
+        <label>Aluno</label>
+        <select id="selectAlunoProf"></select>
+
+        <label style="margin-top:14px">Código da Prova (QR)</label>
+        <input type="text" id="inputQR" value="PROVA-M0702-B12-2026" />
+
+        <button class="btn" onclick="carregarCorrecaoProf()" style="margin-top:16px">
+          Começar Correção
+        </button>
+      </div>
+
+      <div id="areaCorrecaoProf" class="hidden">
+        <div class="card">
+          <h3 style="margin-top:0">Marque as respostas do aluno</h3>
+          <div id="bolhasProfessor"></div>
+          <button class="btn btn-verde" onclick="corrigirProfessor()">Corrigir Agora</button>
+        </div>
+      </div>
+
+      <button class="btn btn-outline" onclick="voltarInicio()">Voltar</button>
+    </div>
+
+    <!-- ========== RESULTADO ========== -->
+    <div id="telaResultado" class="hidden">
+      <div class="card">
+        <h2 style="margin-top:0;text-align:center" id="nomeResultado"></h2>
+        <div id="caixaNota" class="nota-box"></div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Q</th>
+              <th>Marcou</th>
+              <th>Gabarito</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaResultado"></tbody>
+        </table>
+      </div>
+
+      <button class="btn" onclick="voltarInicio()">Nova Correção</button>
+      <button class="btn btn-outline" onclick="window.print()">Imprimir Resultado</button>
+    </div>
+
+    <div class="footer">
+      Avaliação Contínua 2026 • Matemática 7º Ano<br>
+      Feito para uso em sala de aula
+    </div>
+  </div>
+
+<script>
+// ======================================================
+// DADOS DA PROVA (12 questões)
+// ======================================================
+const QUESTOES = [
+  {
+    id: 1,
+    enunciado: "Uma camiseta custa R$ 80,00 e está com 20% de desconto. Qual o valor do desconto?",
+    opcoes: ["R$ 10,00", "R$ 16,00", "R$ 20,00", "R$ 60,00"]
+  },
+  {
+    id: 2,
+    enunciado: "Quanto vale a expressão: 5 + 3 × 4 ?",
+    opcoes: ["17", "32", "20", "12"]
+  },
+  {
+    id: 3,
+    enunciado: "Um retângulo tem lados 9 cm e 4 cm. Qual é a sua área?",
+    opcoes: ["13 cm²", "26 cm²", "36 cm²", "72 cm²"]
+  },
+  {
+    id: 4,
+    enunciado: "Qual fração é equivalente a 2/4 ?",
+    opcoes: ["1/4", "1/2", "3/4", "2/6"]
+  },
+  {
+    id: 5,
+    enunciado: "Dois ângulos de um triângulo medem 70° e 50°. Quanto mede o terceiro?",
+    opcoes: ["40°", "50°", "60°", "60°"]
+  },
+  {
+    id: 6,
+    enunciado: "Qual o resultado de: –8 + 15 ?",
+    opcoes: ["7", "–7", "23", "–23"]
+  },
+  {
+    id: 7,
+    enunciado: "A média de 6, 8 e 10 é:",
+    opcoes: ["7", "8", "8", "9"]
+  },
+  {
+    id: 8,
+    enunciado: "O perímetro de um quadrado de lado 7 cm é:",
+    opcoes: ["14 cm", "28 cm", "49 cm", "21 cm"]
+  },
+  {
+    id: 9,
+    enunciado: "Se 3 canetas custam R$ 12,00, quanto custam 5 canetas?",
+    opcoes: ["R$ 20,00", "R$ 15,00", "R$ 18,00", "R$ 24,00"]
+  },
+  {
+    id: 10,
+    enunciado: "O valor de 2⁴ é:",
+    opcoes: ["6", "8", "12", "16"]
+  },
+  {
+    id: 11,
+    enunciado: "O volume de um cubo de aresta 3 cm é:",
+    opcoes: ["9 cm³", "18 cm³", "27 cm³", "36 cm³"]
+  },
+  {
+    id: 12,
+    enunciado: "Em um gráfico, a barra de 'Maio' chega a 40 e a de 'Junho' a 25. Qual a diferença?",
+    opcoes: ["10", "15", "25", "65"]
+  }
+];
+
+// Gabarito oficial
+const GABARITO = {
+  1:"B", 2:"A", 3:"C", 4:"B", 5:"D", 6:"A",
+  7:"C", 8:"B", 9:"A", 10:"D", 11:"C", 12:"B"
+};
+
+let respostasAluno = {};
+let alunoAtual = null;
+let modo = null;
+
+// ======================================================
+// INICIALIZAÇÃO
+// ======================================================
+async function carregarAlunos() {
+  try {
+    const resp = await fetch('alunos.json');
+    const data = await resp.json();
+    return data.alunos;
+  } catch (e) {
+    // fallback caso não encontre o json
+    return [
+      {id:"A01", nome:"Aluno 1", numero:1},
+      {id:"A02", nome:"Aluno 2", numero:2},
+      {id:"A03", nome:"Aluno 3", numero:3},
+      {id:"A04", nome:"Aluno 4", numero:4},
+      {id:"A05", nome:"Aluno 5", numero:5}
+    ];
+  }
+}
+
+window.onload = async () => {
+  const alunos = await carregarAlunos();
+  const selects = [document.getElementById("selectAluno"), document.getElementById("selectAlunoProf")];
+  
+  selects.forEach(sel => {
+    alunos.forEach(a => {
+      const opt = document.createElement("option");
+      opt.value = a.id;
+      opt.textContent = `${a.numero}. ${a.nome}`;
+      sel.appendChild(opt);
+    });
+  });
+
+  // Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+};
+
+// ======================================================
+// NAVEGAÇÃO
+// ======================================================
+function esconderTudo() {
+  ["telaInicio","telaAluno","telaProfessor","telaResultado","areaCorrecaoProf"].forEach(id => {
+    document.getElementById(id)?.classList.add("hidden");
+  });
+}
+
+function voltarInicio() {
+  esconderTudo();
+  document.getElementById("telaInicio").classList.remove("hidden");
+  document.getElementById("tituloHeader").textContent = "Avaliação de Matemática";
+  respostasAluno = {};
+}
+
+// ======================================================
+// MODO ALUNO
+// ======================================================
+function iniciarAluno() {
+  esconderTudo();
+  document.getElementById("telaAluno").classList.remove("hidden");
+  document.getElementById("tituloHeader").textContent = "Modo Aluno";
+  montarQuestoes();
+}
+
+function montarQuestoes() {
+  const container = document.getElementById("areaQuestoes");
+  container.innerHTML = "";
+
+  QUESTOES.forEach((q, idx) => {
+    const div = document.createElement("div");
+    div.className = "card questao";
+    div.innerHTML = `
+      <h3>${q.id}. ${q.enunciado}</h3>
+      <div class="opcoes" id="opcoes-${q.id}">
+        ${q.opcoes.map((op, i) => {
+          const letra = String.fromCharCode(65 + i);
+          return `<div class="opcao" onclick="selecionar(${q.id},'${letra}',this)">
+                    <div class="letra">${letra}</div>
+                    <div>${op}</div>
+                  </div>`;
+        }).join("")}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function selecionar(numQ, letra, elemento) {
+  respostasAluno[numQ] = letra;
+
+  // remove seleção anterior
+  const pai = elemento.parentElement;
+  pai.querySelectorAll(".opcao").forEach(o => o.classList.remove("selecionada"));
+  elemento.classList.add("selecionada");
+
+  // atualiza progresso
+  const total = Object.keys(respostasAluno).length;
+  document.getElementById("contadorQuestao").textContent = total;
+  document.getElementById("barraProgresso").style.width = `${(total/12)*100}%`;
+}
+
+function finalizarProvaAluno() {
+  const sel = document.getElementById("selectAluno");
+  if (!sel.value) return alert("Selecione seu nome primeiro!");
+
+  if (Object.keys(respostasAluno).length < 8) {
+    if (!confirm("Você respondeu poucas questões. Deseja entregar mesmo assim?")) return;
+  }
+
+  alunoAtual = sel.options[sel.selectedIndex].text;
+  mostrarResultado(respostasAluno, alunoAtual);
+}
+
+// ======================================================
+// MODO PROFESSOR
+// ======================================================
+function iniciarProfessor() {
+  esconderTudo();
+  document.getElementById("telaProfessor").classList.remove("hidden");
+  document.getElementById("tituloHeader").textContent = "Modo Professor";
+}
+
+function carregarCorrecaoProf() {
+  const qr = document.getElementById("inputQR").value.trim();
+  if (qr !== "PROVA-M0702-B12-2026") {
+    alert("Código QR inválido!");
+    return;
+  }
+
+  const sel = document.getElementById("selectAlunoProf");
+  if (!sel.value) return alert("Selecione o aluno");
+
+  alunoAtual = sel.options[sel.selectedIndex].text;
+  document.getElementById("areaCorrecaoProf").classList.remove("hidden");
+
+  // monta bolhas
+  let html = "";
+  for (let i = 1; i <= 12; i++) {
+    html += `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <strong style="width:28px">Q${i}</strong>
+        ${["A","B","C","D"].map(l => 
+          `<div class="letra" style="cursor:pointer;border:2px solid #94a3b8" 
+                id="prof-${i}-${l}" onclick="marcarProf(${i},'${l}')">${l}</div>`
+        ).join("")}
+      </div>`;
+  }
+  document.getElementById("bolhasProfessor").innerHTML = html;
+  respostasAluno = {};
+}
+
+function marcarProf(q, letra) {
+  respostasAluno[q] = letra;
+  ["A","B","C","D"].forEach(l => {
+    const el = document.getElementById(`prof-${q}-${l}`);
+    if (l === letra) {
+      el.style.background = "var(--azul)";
+      el.style.color = "white";
+      el.style.borderColor = "var(--azul)";
+    } else {
+      el.style.background = "#e2e8f0";
+      el.style.color = "inherit";
+      el.style.borderColor = "#94a3b8";
+    }
+  });
+}
+
+function corrigirProfessor() {
+  mostrarResultado(respostasAluno, alunoAtual);
+}
+
+// ======================================================
+// RESULTADO
+// ======================================================
+function mostrarResultado(respostas, nome) {
+  esconderTudo();
+  document.getElementById("telaResultado").classList.remove("hidden");
+  document.getElementById("tituloHeader").textContent = "Resultado";
+
+  let acertos = 0;
+  let linhas = "";
+
+  for (let i = 1; i <= 12; i++) {
+    const marcada = respostas[i] || "-";
+    const correta = GABARITO[i];
+    const ok = marcada === correta;
+    if (ok) acertos++;
+
+    linhas += `
+      <tr>
+        <td>${i}</td>
+        <td>${marcada}</td>
+        <td>${correta}</td>
+        <td style="color:${ok ? 'var(--verde)' : 'var(--vermelho)'};font-weight:700">
+          ${ok ? "✓" : "✗"}
+        </td>
+      </tr>`;
+  }
+
+  const nota = (acertos / 12 * 10).toFixed(1);
+  let classeNota = "nota-ruim";
+  if (nota >= 7) classeNota = "nota-boa";
+  else if (nota >= 5) classeNota = "nota-media";
+
+  document.getElementById("nomeResultado").textContent = nome;
+  document.getElementById("caixaNota").className = `nota-box ${classeNota}`;
+  document.getElementById("caixaNota").innerHTML = `
+    Nota: ${nota} / 10<br>
+    <span style="font-size:1.1rem;font-weight:500">${acertos} de 12 acertos</span>
+  `;
+  document.getElementById("tabelaResultado").innerHTML = linhas;
+}
+</script>
+</body>
+</html>
