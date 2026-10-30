@@ -395,7 +395,7 @@ let serieProfessorAtual = null;
 // ======================================================
 async function carregarAlunos() {
   try {
-    const resp = await fetch('alunos.json');
+    const resp = await fetch('alunos.json', {cache: 'no-store'});
     if (!resp.ok) throw new Error(`Falha ao carregar alunos.json: HTTP ${resp.status}`);
     const data = await resp.json();
     if (!data.turmas || !Array.isArray(data.turmas["6"]?.alunos) || !Array.isArray(data.turmas["7"]?.alunos)) {
