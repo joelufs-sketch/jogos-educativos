@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b3d91" />
+  <title>Intensivão de Matemática — 5º Ano</title>
+  <style>
+    :root {
+      --blue: #0b3d91;
+      --blue-dark: #072c6b;
+      --green: #0a7a34;
+      --red: #c1121f;
+      --page: #f1f5f9;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding-bottom: 36px;
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 18px 16px 20px;
+      color: white;
+      text-align: center;
+      background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+    }
+
+    .header h1 { margin: 0; font-size: 1.3rem; }
+    .header p { margin: 5px 0 0; font-size: .9rem; opacity: .92; }
+    .container { max-width: 640px; margin: 0 auto; padding: 16px; }
+
+    .card {
+      margin-bottom: 16px;
+      padding: 20px;
+      border-radius: var(--radius);
+      background: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .06);
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 15px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--blue);
+      color: white;
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn:active { transform: scale(.99); }
+    .btn-green { background: var(--green); }
+    .btn-outline { border: 2px solid var(--blue); background: white; color: var(--blue); }
+
+    label { display: block; margin-top: 12px; font-weight: 700; }
+
+    input[type="text"] {
+      width: 100%;
+      margin-top: 6px;
+      padding: 13px;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      font: inherit;
+    }
+
+    .question { margin-bottom: 14px; }
+    .question h2 { margin: 0 0 12px; font-size: 1.05rem; line-height: 1.45; }
+    .options { display: grid; gap: 9px; }
+
+    .answer-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #cbd5e1;
+      border-radius: 11px;
+      background: white;
+      color: #111827;
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .answer-option, .answer-option * { color: #111827; }
+    .answer-option.selected { border-color: var(--blue); background: #dbeafe; }
+
+    .letter {
+      display: inline-flex;
+      flex: 0 0 32px;
+      width: 32px;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #111827;
+      font-weight: 800;
+    }
+
+    .progress { height: 10px; margin: 12px 0; overflow: hidden; border-radius: 99px; background: #e2e8f0; }
+    .progress-bar { height: 100%; width: 0; background: var(--blue); transition: width .2s; }
+    .muted { color: var(--muted); font-size: .9rem; }
+    .hidden { display: none !important; }
+    .score { margin: 16px 0; padding: 20px; border-radius: var(--radius); text-align: center; font-size: 1.5rem; font-weight: 800; }
+    .score-good { background: #dcfce7; color: #166534; }
+    .score-medium { background: #fef9c3; color: #854d0e; }
+    .score-low { background: #fee2e2; color: #991b1b; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { padding: 9px 5px; border-bottom: 1px solid #e2e8f0; text-align: center; }
+    th { background: #f8fafc; }
+    .prof-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+    .prof-number { width: 34px; font-weight: 700; }
+    .prof-choice {
+      width: 38px;
+      height: 38px;
+      border: 2px solid #94a3b8;
+      border-radius: 50%;
+      background: white;
+      color: #111827;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .prof-choice.selected { border-color: var(--blue); background: #dbeafe; color: #111827; }
+    .footer { margin-top: 24px; color: var(--muted); text-align: center; font-size: .8rem; }
+
+    @media print {
+      .header { position: static; box-shadow: none; }
+      .btn, #telaInicio, #telaAluno, #telaProfessor { display: none !important; }
+      body { background: white; }
+      .card { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1 id="tituloHeader">Intensivão de Matemática</h1>
+    <p>5º Ano • 20 questões originais</p>
+  </header>
+
+  <main class="container">
+    <section id="telaInicio">
+      <div class="card">
+        <h2 style="margin-top:0">Vamos praticar?</h2>
+        <p>Questões originais para revisar números, operações, frações, medidas, geometria e leitura de dados.</p>
+        <button class="btn" type="button" onclick="iniciarAluno()">Sou estudante — responder</button>
+        <button class="btn btn-outline" type="button" onclick="iniciarProfessor()">Sou professor — corrigir</button>
+      </div>
+    </section>
+
+    <section id="telaAluno" class="hidden">
+      <div class="card">
+        <label for="nomeAluno">Nome ou identificação (opcional)</label>
+        <input id="nomeAluno" type="text" maxlength="60" autocomplete="off" placeholder="Pode deixar em branco" />
+        <div class="progress" aria-label="Progresso da prova">
+          <div class="progress-bar" id="barraProgresso"></div>
+        </div>
+        <p class="muted" style="text-align:center"><span id="contadorQuestao">0</span>/20 respondidas</p>
+      </div>
+      <div id="areaQuestoes"></div>
+      <button class="btn btn-green" type="button" onclick="finalizarAluno()">Ver resultado</button>
+      <button class="btn btn-outline" type="button" onclick="voltarInicio()">Voltar</button>
+    </section>
+
+    <section id="telaProfessor" class="hidden">
+      <div class="card">
+        <h2 style="margin-top:0">Correção rápida</h2>
+        <label for="nomeProfessor">Nome ou identificação (opcional)</label>
+        <input id="nomeProfessor" type="text" maxlength="60" autocomplete="off" placeholder="Pode deixar em branco" />
+        <p>Marque no cartão as alternativas escolhidas pelo estudante.</p>
+        <div id="bolhasProfessor"></div>
+        <button class="btn btn-green" type="button" onclick="finalizarProfessor()">Corrigir respostas</button>
+      </div>
+      <button class="btn btn-outline" type="button" onclick="voltarInicio()">Voltar</button>
+    </section>
+
+    <section id="telaResultado" class="hidden">
+      <div class="card">
+        <h2 id="nomeResultado" style="margin-top:0;text-align:center"></h2>
+        <div id="caixaNota" class="score"></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr><th>Questão</th><th>Marcada</th><th>Gabarito</th><th>Resultado</th></tr>
+            </thead>
+            <tbody id="tabelaResultado"></tbody>
+          </table>
+        </div>
+      </div>
+      <button class="btn" type="button" onclick="voltarInicio()">Nova atividade</button>
+      <button class="btn btn-outline" type="button" onclick="window.print()">Imprimir resultado</button>
+    </section>
+
+    <p class="footer">Intensivão de Matemática • Atividade de revisão</p>
+  </main>
+
+<script>
+const QUESTOES = [
+  {texto:"Num mapa quadriculado, Lia parte da posição (2, 3), anda 4 casas para a direita e 2 para cima. Em qual posição ela chega?", opcoes:["(6, 5)", "(4, 5)", "(6, 1)", "(2, 5)"], correta:"A"},
+  {texto:"Qual sólido tem 6 faces quadradas iguais?", opcoes:["Cone", "Cubo", "Cilindro", "Esfera"], correta:"B"},
+  {texto:"Qual característica é comum a todos os triângulos?", opcoes:["Têm quatro lados", "Têm todos os lados iguais", "Têm três lados", "Têm quatro ângulos"], correta:"C"},
+  {texto:"Um quadrilátero tem dois pares de lados opostos paralelos. Qual figura pode ser esse quadrilátero?", opcoes:["Triângulo", "Círculo", "Pentágono", "Paralelogramo"], correta:"D"},
+  {texto:"Uma figura foi montada com 18 quadradinhos de área igual. Ao reorganizar os mesmos quadradinhos sem sobreposição, qual será a área da nova figura?", opcoes:["9 quadradinhos", "18 quadradinhos", "36 quadradinhos", "Depende do formato"], correta:"B"},
+  {texto:"Uma fita mede 2 metros e 35 centímetros. Quantos centímetros ela mede ao todo?", opcoes:["235 cm", "2035 cm", "25 cm", "2,35 cm"], correta:"A"},
+  {texto:"Quantos minutos há em 3 horas?", opcoes:["90 minutos", "120 minutos", "180 minutos", "300 minutos"], correta:"C"},
+  {texto:"Uma aula começa às 9h15 e termina às 11h. Quanto tempo dura?", opcoes:["1 hora e 15 minutos", "1 hora e 30 minutos", "2 horas", "1 hora e 45 minutos"], correta:"D"},
+  {texto:"Uma compra custa R$ 32,70 e é paga com uma nota de R$ 50,00. Qual é o troco?", opcoes:["R$ 17,30", "R$ 18,30", "R$ 22,30", "R$ 17,70"], correta:"A"},
+  {texto:"Um jardim retangular mede 8 metros de comprimento e 5 metros de largura. Qual é sua área?", opcoes:["13 m²", "26 m²", "40 m²", "80 m²"], correta:"C"},
+  {texto:"No número 572.418, qual é o valor do algarismo 7?", opcoes:["7", "70", "7.000", "70.000"], correta:"D"},
+  {texto:"Qual número fica exatamente no meio entre 3.200 e 3.300 na reta numérica?", opcoes:["3.210", "3.250", "3.280", "3.500"], correta:"B"},
+  {texto:"Qual é a decomposição correta de 46.305?", opcoes:["40.000 + 6.000 + 300 + 5", "4.000 + 600 + 30 + 5", "46.000 + 30 + 50", "40.000 + 600 + 30 + 5"], correta:"A"},
+  {texto:"Uma biblioteca recebeu 2.785 livros e depois mais 1.946. Quantos livros recebeu ao todo?", opcoes:["4.621", "4.731", "4.721", "3.731"], correta:"B"},
+  {texto:"Uma fábrica organizou 144 caixas igualmente em 8 prateleiras. Quantas caixas ficaram em cada prateleira?", opcoes:["16", "18", "20", "22"], correta:"B"},
+  {texto:"Uma barra de cereal foi dividida em 8 pedaços iguais. Sofia comeu 3 pedaços. Que fração da barra ela comeu?", opcoes:["3/8", "5/8", "8/3", "3/5"], correta:"A"},
+  {texto:"Qual fração é equivalente a 3/4?", opcoes:["4/6", "6/10", "9/12", "12/9"], correta:"C"},
+  {texto:"Um caderno custa R$ 14,85 e uma caneta custa R$ 3,40. Quanto custam juntos?", opcoes:["R$ 17,25", "R$ 18,15", "R$ 17,95", "R$ 18,25"], correta:"D"},
+  {texto:"Uma mochila custa R$ 120,00 e está com desconto de 25%. Qual é o valor do desconto?", opcoes:["R$ 20,00", "R$ 30,00", "R$ 25,00", "R$ 40,00"], correta:"B"},
+  {texto:"Uma tabela mostra os livros lidos por quatro grupos: A leu 12, B leu 18, C leu 9 e D leu 15. Quantos livros a mais o grupo B leu que o grupo C?", opcoes:["6", "8", "9", "27"], correta:"C"}
+];
+
+let respostasAluno = {};
+let respostasProfessor = {};
+let nomeAtual = "";
+
+function mostrarTela(id, titulo) {
+  ["telaInicio", "telaAluno", "telaProfessor", "telaResultado"].forEach(telaId => {
+    document.getElementById(telaId).classList.toggle("hidden", telaId !== id);
+  });
+  document.getElementById("tituloHeader").textContent = titulo;
+}
+
+function montarQuestoes() {
+  const container = document.getElementById("areaQuestoes");
+  container.replaceChildren();
+
+  QUESTOES.forEach((questao, indice) => {
+    const card = document.createElement("article");
+    card.className = "card question";
+    const titulo = document.createElement("h2");
+    titulo.textContent = `${indice + 1}. ${questao.texto}`;
+    const opcoes = document.createElement("div");
+    opcoes.className = "options";
+
+    questao.opcoes.forEach((texto, opcaoIndice) => {
+      const letra = String.fromCharCode(65 + opcaoIndice);
+      const botao = document.createElement("button");
+      botao.type = "button";
+      botao.className = "answer-option";
+      botao.dataset.question = String(indice + 1);
+      botao.dataset.answer = letra;
+      botao.setAttribute("aria-pressed", "false");
+
+      const bolha = document.createElement("span");
+      bolha.className = "letter";
+      bolha.textContent = letra;
+      const rotulo = document.createElement("span");
+      rotulo.textContent = texto;
+      botao.append(bolha, rotulo);
+      botao.addEventListener("click", () => selecionarResposta(indice + 1, letra, opcoes));
+      opcoes.appendChild(botao);
+    });
+
+    card.append(titulo, opcoes);
+    container.appendChild(card);
+  });
+}
+
+function selecionarResposta(numero, letra, opcoes) {
+  respostasAluno[numero] = letra;
+  opcoes.querySelectorAll(".answer-option").forEach(botao => {
+    const selecionado = botao.dataset.answer === letra;
+    botao.classList.toggle("selected", selecionado);
+    botao.setAttribute("aria-pressed", String(selecionado));
+  });
+  const total = Object.keys(respostasAluno).length;
+  document.getElementById("contadorQuestao").textContent = String(total);
+  document.getElementById("barraProgresso").style.width = `${total / QUESTOES.length * 100}%`;
+}
+
+function iniciarAluno() {
+  respostasAluno = {};
+  montarQuestoes();
+  document.getElementById("nomeAluno").value = "";
+  document.getElementById("contadorQuestao").textContent = "0";
+  document.getElementById("barraProgresso").style.width = "0";
+  mostrarTela("telaAluno", "Modo estudante");
+}
+
+function iniciarProfessor() {
+  respostasProfessor = {};
+  document.getElementById("nomeProfessor").value = "";
+  const container = document.getElementById("bolhasProfessor");
+  container.replaceChildren();
+
+  QUESTOES.forEach((_, indice) => {
+    const linha = document.createElement("div");
+    linha.className = "prof-row";
+    const numero = document.createElement("span");
+    numero.className = "prof-number";
+    numero.textContent = `Q${indice + 1}`;
+    linha.appendChild(numero);
+
+    ["A", "B", "C", "D"].forEach(letra => {
+      const botao = document.createElement("button");
+      botao.type = "button";
+      botao.className = "prof-choice";
+      botao.textContent = letra;
+      botao.setAttribute("aria-label", `Questão ${indice + 1}, alternativa ${letra}`);
+      botao.setAttribute("aria-pressed", "false");
+      botao.addEventListener("click", () => marcarProfessor(indice + 1, letra, linha));
+      linha.appendChild(botao);
+    });
+
+    container.appendChild(linha);
+  });
+  mostrarTela("telaProfessor", "Modo professor");
+}
+
+function marcarProfessor(numero, letra, linha) {
+  respostasProfessor[numero] = letra;
+  linha.querySelectorAll(".prof-choice").forEach(botao => {
+    const selecionado = botao.textContent === letra;
+    botao.classList.toggle("selected", selecionado);
+    botao.setAttribute("aria-pressed", String(selecionado));
+  });
+}
+
+function finalizarAluno() {
+  if (Object.keys(respostasAluno).length < QUESTOES.length &&
+      !confirm("Há questões sem resposta. Deseja ver o resultado mesmo assim?")) return;
+  nomeAtual = document.getElementById("nomeAluno").value.trim();
+  mostrarResultado(respostasAluno);
+}
+
+function finalizarProfessor() {
+  if (Object.keys(respostasProfessor).length < QUESTOES.length &&
+      !confirm("Há questões sem marcação. Deseja corrigir mesmo assim?")) return;
+  nomeAtual = document.getElementById("nomeProfessor").value.trim();
+  mostrarResultado(respostasProfessor);
+}
+
+function mostrarResultado(respostas) {
+  let acertos = 0;
+  const tabela = document.getElementById("tabelaResultado");
+  tabela.replaceChildren();
+
+  QUESTOES.forEach((questao, indice) => {
+    const numero = indice + 1;
+    const marcada = respostas[numero] || "—";
+    const certa = questao.correta;
+    const correta = marcada === certa;
+    if (correta) acertos++;
+
+    const linha = document.createElement("tr");
+    [String(numero), marcada, certa, correta ? "✓" : "✗"].forEach(valor => {
+      const celula = document.createElement("td");
+      celula.textContent = valor;
+      linha.appendChild(celula);
+    });
+    const status = linha.lastElementChild;
+    status.style.color = correta ? "var(--green)" : "var(--red)";
+    status.style.fontWeight = "800";
+    tabela.appendChild(linha);
+  });
+
+  const nota = (acertos / QUESTOES.length * 10).toFixed(1);
+  const caixa = document.getElementById("caixaNota");
+  caixa.className = `score ${nota >= 7 ? "score-good" : nota >= 5 ? "score-medium" : "score-low"}`;
+  caixa.replaceChildren();
+  const textoNota = document.createElement("span");
+  textoNota.textContent = `Nota: ${nota} / 10`;
+  const detalhe = document.createElement("span");
+  detalhe.className = "muted";
+  detalhe.style.display = "block";
+  detalhe.style.marginTop = "8px";
+  detalhe.textContent = `${acertos} de ${QUESTOES.length} acertos`;
+  caixa.append(textoNota, detalhe);
+  document.getElementById("nomeResultado").textContent = nomeAtual
+    ? `Resultado — ${nomeAtual}`
+    : "Resultado do Intensivão";
+  mostrarTela("telaResultado", "Resultado");
+}
+
+function voltarInicio() {
+  respostasAluno = {};
+  respostasProfessor = {};
+  nomeAtual = "";
+  mostrarTela("telaInicio", "Intensivão de Matemática");
+}
+</script>
+</body>
+</html>
