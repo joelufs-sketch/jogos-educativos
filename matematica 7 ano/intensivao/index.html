@@ -143,11 +143,29 @@
     }
 
     .prof-choice.selected { border-color: var(--blue); background: #dbeafe; color: #111827; }
+    .history-item {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: white;
+      color: var(--ink);
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .history-item:hover { border-color: var(--blue); background: #f8fafc; }
+    .history-detail { margin-top: 16px; }
+    .history-detail .table-scroll { overflow-x: auto; }
+    .notice { padding: 12px; border-radius: 10px; background: #eff6ff; color: #1e3a8a; }
     .footer { margin-top: 24px; color: var(--muted); text-align: center; font-size: .8rem; }
 
     @media print {
       .header { position: static; box-shadow: none; }
-      .btn, #telaInicio, #telaAluno, #telaProfessor { display: none !important; }
+      .btn, #telaInicio, #telaIdentificacao, #telaAluno, #telaProfessor, #telaHistorico { display: none !important; }
       body { background: white; }
       .card { box-shadow: none; }
     }
@@ -166,13 +184,26 @@
         <p>Questões originais para revisar números, operações, frações, medidas, geometria e leitura de dados.</p>
         <button class="btn" type="button" onclick="iniciarAluno()">Sou estudante — responder</button>
         <button class="btn btn-outline" type="button" onclick="iniciarProfessor()">Sou professor — corrigir</button>
+        <button class="btn btn-outline" type="button" onclick="abrirHistorico()">Ver desempenho dos alunos</button>
+      </div>
+    </section>
+
+    <section id="telaIdentificacao" class="hidden">
+      <div class="card">
+        <h2 style="margin-top:0">Quem vai responder?</h2>
+        <p>Digite somente seu primeiro nome. A atividade começa em seguida.</p>
+        <form id="formNomeAluno">
+          <label for="nomeAluno">Primeiro nome</label>
+          <input id="nomeAluno" type="text" maxlength="30" autocomplete="given-name" required title="Digite seu primeiro nome." />
+          <button class="btn" type="submit">Começar atividade</button>
+        </form>
+        <button class="btn btn-outline" type="button" onclick="voltarInicio()">Voltar</button>
       </div>
     </section>
 
     <section id="telaAluno" class="hidden">
       <div class="card">
-        <label for="nomeAluno">Nome ou identificação (opcional)</label>
-        <input id="nomeAluno" type="text" maxlength="60" autocomplete="off" placeholder="Pode deixar em branco" />
+        <strong id="identificacaoAluno"></strong>
         <div class="progress" aria-label="Progresso da prova">
           <div class="progress-bar" id="barraProgresso"></div>
         </div>
@@ -212,6 +243,19 @@
       <button class="btn btn-outline" type="button" onclick="window.print()">Imprimir resultado</button>
     </section>
 
+    <section id="telaHistorico" class="hidden">
+      <div class="card">
+        <h2 style="margin-top:0">Desempenho dos alunos</h2>
+        <p class="notice">Os resultados ficam salvos apenas neste navegador e aparelho. Para reunir resultados de outros celulares, cada aluno precisará enviar a planilha exportada.</p>
+        <p id="avisoHistorico" class="muted" aria-live="polite"></p>
+        <div id="listaHistorico"></div>
+        <button id="exportarResultados" class="btn btn-green" type="button" onclick="exportarResultados()">Baixar planilha CSV</button>
+        <button id="exportarRelatorio" class="btn btn-outline" type="button" onclick="exportarRelatorio()">Baixar relatório interativo</button>
+      </div>
+      <div id="detalheHistorico" class="card history-detail hidden"></div>
+      <button class="btn btn-outline" type="button" onclick="voltarInicio()">Voltar ao início</button>
+    </section>
+
     <p class="footer">Intensivão de Matemática • Atividade de revisão</p>
   </main>
 
@@ -239,12 +283,21 @@ const QUESTOES = [
   {texto:"Uma tabela mostra os livros lidos por quatro grupos: A leu 12, B leu 18, C leu 9 e D leu 15. Quantos livros a mais o grupo B leu que o grupo C?", opcoes:["6", "8", "9", "27"], correta:"C"}
 ];
 
+const CHAVE_RESULTADOS = "intensivao-resultados-v1";
 let respostasAluno = {};
 let respostasProfessor = {};
 let nomeAtual = "";
 
+document.getElementById("formNomeAluno").addEventListener("submit", evento => {
+  evento.preventDefault();
+  comecarAtividade();
+});
+document.getElementById("nomeAluno").addEventListener("input", evento => {
+  evento.currentTarget.setCustomValidity("");
+});
+
 function mostrarTela(id, titulo) {
-  ["telaInicio", "telaAluno", "telaProfessor", "telaResultado"].forEach(telaId => {
+  ["telaInicio", "telaIdentificacao", "telaAluno", "telaProfessor", "telaResultado", "telaHistorico"].forEach(telaId => {
     document.getElementById(telaId).classList.toggle("hidden", telaId !== id);
   });
   document.getElementById("tituloHeader").textContent = titulo;
@@ -300,10 +353,27 @@ function selecionarResposta(numero, letra, opcoes) {
 
 function iniciarAluno() {
   respostasAluno = {};
-  montarQuestoes();
   document.getElementById("nomeAluno").value = "";
+  document.getElementById("formNomeAluno").classList.remove("hidden");
+  mostrarTela("telaIdentificacao", "Identificação do estudante");
+  document.getElementById("nomeAluno").focus();
+}
+
+function comecarAtividade() {
+  const campoNome = document.getElementById("nomeAluno");
+  const primeiroNome = campoNome.value.trim().split(/\s+/)[0];
+  if (!primeiroNome || !/^[\p{L}\p{M}ªº]+(?:['’.-][\p{L}\p{M}ªº]+)*$/u.test(primeiroNome)) {
+    campoNome.setCustomValidity("Digite um primeiro nome válido.");
+    campoNome.reportValidity();
+    return;
+  }
+  campoNome.setCustomValidity("");
+  nomeAtual = primeiroNome;
+  respostasAluno = {};
+  montarQuestoes();
   document.getElementById("contadorQuestao").textContent = "0";
   document.getElementById("barraProgresso").style.width = "0";
+  document.getElementById("identificacaoAluno").textContent = `Estudante: ${nomeAtual}`;
   mostrarTela("telaAluno", "Modo estudante");
 }
 
@@ -349,28 +419,53 @@ function marcarProfessor(numero, letra, linha) {
 function finalizarAluno() {
   if (Object.keys(respostasAluno).length < QUESTOES.length &&
       !confirm("Há questões sem resposta. Deseja ver o resultado mesmo assim?")) return;
-  nomeAtual = document.getElementById("nomeAluno").value.trim();
-  mostrarResultado(respostasAluno);
+  const registro = criarRegistro(respostasAluno);
+  try {
+    salvarRegistro(registro);
+    mostrarResultado(registro);
+  } catch (erro) {
+    console.error("Não foi possível salvar o desempenho do estudante.", erro);
+    alert("Não foi possível salvar este resultado neste aparelho. A nota será exibida, mas não aparecerá no histórico nem na planilha.");
+    mostrarResultado(registro);
+  }
 }
 
 function finalizarProfessor() {
   if (Object.keys(respostasProfessor).length < QUESTOES.length &&
       !confirm("Há questões sem marcação. Deseja corrigir mesmo assim?")) return;
   nomeAtual = document.getElementById("nomeProfessor").value.trim();
-  mostrarResultado(respostasProfessor);
+  mostrarResultado(criarRegistro(respostasProfessor));
 }
 
-function mostrarResultado(respostas) {
+function criarRegistro(respostas) {
   let acertos = 0;
+  const respostasSalvas = {};
+  QUESTOES.forEach((questao, indice) => {
+    const numero = indice + 1;
+    respostasSalvas[numero] = respostas[numero] || "";
+    if (respostasSalvas[numero] === questao.correta) acertos++;
+  });
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    data: new Date().toISOString(),
+    nome: nomeAtual || "Sem nome",
+    respostas: respostasSalvas,
+    acertos,
+    total: QUESTOES.length,
+    nota: (acertos / QUESTOES.length * 10).toFixed(1),
+    questoes: QUESTOES
+  };
+}
+
+function mostrarResultado(registro) {
   const tabela = document.getElementById("tabelaResultado");
   tabela.replaceChildren();
 
-  QUESTOES.forEach((questao, indice) => {
+  registro.questoes.forEach((questao, indice) => {
     const numero = indice + 1;
-    const marcada = respostas[numero] || "—";
+    const marcada = registro.respostas[numero] || "—";
     const certa = questao.correta;
     const correta = marcada === certa;
-    if (correta) acertos++;
 
     const linha = document.createElement("tr");
     [String(numero), marcada, certa, correta ? "✓" : "✗"].forEach(valor => {
@@ -384,22 +479,247 @@ function mostrarResultado(respostas) {
     tabela.appendChild(linha);
   });
 
-  const nota = (acertos / QUESTOES.length * 10).toFixed(1);
   const caixa = document.getElementById("caixaNota");
-  caixa.className = `score ${nota >= 7 ? "score-good" : nota >= 5 ? "score-medium" : "score-low"}`;
+  caixa.className = `score ${registro.nota >= 7 ? "score-good" : registro.nota >= 5 ? "score-medium" : "score-low"}`;
   caixa.replaceChildren();
   const textoNota = document.createElement("span");
-  textoNota.textContent = `Nota: ${nota} / 10`;
+  textoNota.textContent = `Nota: ${registro.nota} / 10`;
   const detalhe = document.createElement("span");
   detalhe.className = "muted";
   detalhe.style.display = "block";
   detalhe.style.marginTop = "8px";
-  detalhe.textContent = `${acertos} de ${QUESTOES.length} acertos`;
+  detalhe.textContent = `${registro.acertos} de ${registro.total} acertos`;
   caixa.append(textoNota, detalhe);
-  document.getElementById("nomeResultado").textContent = nomeAtual
-    ? `Resultado — ${nomeAtual}`
+  document.getElementById("nomeResultado").textContent = registro.nome !== "Sem nome"
+    ? `Resultado — ${registro.nome}`
     : "Resultado do Intensivão";
   mostrarTela("telaResultado", "Resultado");
+}
+
+function lerRegistros() {
+  const armazenado = localStorage.getItem(CHAVE_RESULTADOS);
+  if (armazenado === null) return [];
+  const registros = JSON.parse(armazenado);
+  if (!Array.isArray(registros) || registros.some(registro =>
+    !registro || typeof registro.id !== "string" || typeof registro.nome !== "string" ||
+    typeof registro.data !== "string" || !Number.isInteger(registro.acertos) ||
+    !Number.isInteger(registro.total) || typeof registro.nota !== "string" ||
+    !Array.isArray(registro.questoes) || !registro.respostas ||
+    typeof registro.respostas !== "object"
+  )) throw new Error("O histórico salvo não tem um formato válido.");
+  return registros;
+}
+
+function salvarRegistro(registro) {
+  const registros = lerRegistros();
+  registros.push(registro);
+  localStorage.setItem(CHAVE_RESULTADOS, JSON.stringify(registros));
+}
+
+function abrirHistorico() {
+  const aviso = document.getElementById("avisoHistorico");
+  const lista = document.getElementById("listaHistorico");
+  const detalhe = document.getElementById("detalheHistorico");
+  lista.replaceChildren();
+  detalhe.replaceChildren();
+  detalhe.classList.add("hidden");
+
+  let registros;
+  try {
+    registros = lerRegistros();
+  } catch (erro) {
+    console.error("Não foi possível ler o histórico salvo.", erro);
+    aviso.textContent = "Não foi possível ler os resultados salvos neste navegador.";
+    mostrarTela("telaHistorico", "Desempenho dos alunos");
+    return;
+  }
+
+  aviso.textContent = registros.length
+    ? `${registros.length} atividade(s) registrada(s) neste aparelho. Toque no nome para ver as respostas.`
+    : "Ainda não há resultados neste aparelho.";
+  document.getElementById("exportarResultados").disabled = registros.length === 0;
+  document.getElementById("exportarRelatorio").disabled = registros.length === 0;
+
+  [...registros].reverse().forEach(registro => {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "history-item";
+    const data = new Date(registro.data).toLocaleString("pt-BR");
+    botao.textContent = `${registro.nome} — ${data} — ${registro.acertos}/${registro.total} acertos — nota ${registro.nota}/10`;
+    botao.addEventListener("click", () => mostrarDetalheHistorico(registro));
+    lista.appendChild(botao);
+  });
+  mostrarTela("telaHistorico", "Desempenho dos alunos");
+}
+
+function mostrarDetalheHistorico(registro) {
+  const detalhe = document.getElementById("detalheHistorico");
+  detalhe.replaceChildren();
+  detalhe.classList.remove("hidden");
+
+  const titulo = document.createElement("h2");
+  titulo.textContent = `Desempenho de ${registro.nome}`;
+  const resumo = document.createElement("p");
+  resumo.className = "notice";
+  resumo.textContent = `${new Date(registro.data).toLocaleString("pt-BR")} — Nota ${registro.nota}/10 — ${registro.acertos} de ${registro.total} acertos.`;
+  detalhe.append(titulo, resumo);
+
+  const tabela = document.createElement("table");
+  const cabecalho = document.createElement("thead");
+  cabecalho.innerHTML = "<tr><th>Questão</th><th>Marcada</th><th>Gabarito</th><th>Resultado</th></tr>";
+  const corpo = document.createElement("tbody");
+  registro.questoes.forEach((questao, indice) => {
+    const numero = indice + 1;
+    const marcada = registro.respostas[numero] || "—";
+    const linha = document.createElement("tr");
+    const enunciado = document.createElement("td");
+    enunciado.colSpan = 4;
+    enunciado.style.textAlign = "left";
+    enunciado.textContent = `${numero}. ${questao.texto} ${questao.opcoes.map((opcao, opIndice) => `${String.fromCharCode(65 + opIndice)}) ${opcao}`).join(" | ")}`;
+    linha.appendChild(enunciado);
+    corpo.appendChild(linha);
+
+    const resultado = document.createElement("tr");
+    [String(numero), marcada, questao.correta, marcada === questao.correta ? "✓" : "✗"].forEach(valor => {
+      const celula = document.createElement("td");
+      celula.textContent = valor;
+      resultado.appendChild(celula);
+    });
+    corpo.appendChild(resultado);
+  });
+  tabela.append(cabecalho, corpo);
+  const tabelaScroll = document.createElement("div");
+  tabelaScroll.className = "table-scroll";
+  tabelaScroll.appendChild(tabela);
+  detalhe.appendChild(tabelaScroll);
+  detalhe.scrollIntoView({behavior: "smooth", block: "start"});
+}
+
+function exportarResultados() {
+  let registros;
+  try {
+    registros = lerRegistros();
+  } catch (erro) {
+    console.error("Não foi possível ler os resultados para exportação.", erro);
+    alert("Não foi possível ler os resultados salvos neste navegador.");
+    return;
+  }
+  if (!registros.length) return;
+
+  const colunas = ["Data e hora", "Primeiro nome", "Acertos", "Total", "Nota"];
+  QUESTOES.forEach((_, indice) => {
+    colunas.push(`Q${indice + 1} marcada`, `Q${indice + 1} gabarito`, `Q${indice + 1} acertou`);
+  });
+  const csvValor = valor => {
+    let texto = String(valor ?? "");
+    if (/^[=+\-@\t\r]/.test(texto)) texto = `'${texto}`;
+    return `"${texto.replace(/"/g, '""')}"`;
+  };
+  const linhas = [colunas.map(csvValor).join(";")];
+  registros.forEach(registro => {
+    const linha = [
+      new Date(registro.data).toLocaleString("pt-BR"),
+      registro.nome,
+      registro.acertos,
+      registro.total,
+      registro.nota
+    ];
+    registro.questoes.forEach((questao, indice) => {
+      const marcada = registro.respostas[indice + 1] || "";
+      linha.push(marcada, questao.correta, marcada === questao.correta ? "Sim" : "Não");
+    });
+    linhas.push(linha.map(csvValor).join(";"));
+  });
+
+  const arquivo = new Blob(["\uFEFF", linhas.join("\r\n")], {type: "text/csv;charset=utf-8"});
+  const endereco = URL.createObjectURL(arquivo);
+  const link = document.createElement("a");
+  link.href = endereco;
+  link.download = "desempenho-intensivao.csv";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(endereco), 0);
+}
+
+function exportarRelatorio() {
+  let registros;
+  try {
+    registros = lerRegistros();
+  } catch (erro) {
+    console.error("Não foi possível ler os resultados para exportação.", erro);
+    alert("Não foi possível ler os resultados salvos neste navegador.");
+    return;
+  }
+  if (!registros.length) return;
+
+  const dados = JSON.stringify(registros)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desempenho do Intensivão</title>
+<style>
+body{margin:0;padding:20px;background:#f1f5f9;color:#1e293b;font:16px Arial,sans-serif}
+main{max-width:900px;margin:auto}.card{margin-bottom:16px;padding:20px;border-radius:14px;background:white}
+button{width:100%;margin:6px 0;padding:12px;border:1px solid #cbd5e1;border-radius:8px;background:white;text-align:left;font:inherit;cursor:pointer}
+button:hover{background:#eff6ff}table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:8px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}
+.questions{margin:8px 0 16px}.muted{color:#64748b}
+@media print{body{background:white}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main><h1>Desempenho do Intensivão</h1>
+<p class="muted">Relatório gerado neste aparelho. Toque no nome para abrir as questões e respostas.</p>
+<section class="card"><div id="lista"></div></section>
+<section id="detalhe" class="card hidden"><h2 id="titulo"></h2><p id="resumo"></p><div id="questoes"></div></section>
+</main>
+<script>
+const registros=${dados};
+const lista=document.getElementById("lista");
+const detalhe=document.getElementById("detalhe");
+registros.slice().reverse().forEach(registro=>{
+ const botao=document.createElement("button");
+ botao.textContent=registro.nome+" — "+new Date(registro.data).toLocaleString("pt-BR")+" — "+registro.acertos+"/"+registro.total+" acertos — nota "+registro.nota+"/10";
+ botao.addEventListener("click",()=>{
+  document.getElementById("titulo").textContent="Desempenho de "+registro.nome;
+  document.getElementById("resumo").textContent="Nota "+registro.nota+"/10 — "+registro.acertos+" de "+registro.total+" acertos.";
+  const area=document.getElementById("questoes");
+  area.replaceChildren();
+  registro.questoes.forEach((questao,indice)=>{
+   const numero=indice+1;
+   const marcada=registro.respostas[numero]||"—";
+   const card=document.createElement("article");
+   card.className="questions";
+   const enunciado=document.createElement("p");
+   enunciado.textContent=numero+". "+questao.texto;
+   const opcoes=document.createElement("p");
+   opcoes.textContent=questao.opcoes.map((opcao,i)=>String.fromCharCode(65+i)+") "+opcao).join(" | ");
+   const resposta=document.createElement("p");
+   resposta.textContent="Marcada: "+marcada+" — Gabarito: "+questao.correta+" — "+(marcada===questao.correta?"Acertou":"Errou");
+   card.append(enunciado,opcoes,resposta);
+   area.appendChild(card);
+  });
+  detalhe.classList.remove("hidden");
+  detalhe.scrollIntoView({behavior:"smooth"});
+ });
+ lista.appendChild(botao);
+});
+<\/script>
+</body>
+</html>`;
+  const arquivo = new Blob([html], {type: "text/html;charset=utf-8"});
+  const endereco = URL.createObjectURL(arquivo);
+  const link = document.createElement("a");
+  link.href = endereco;
+  link.download = "relatorio-interativo-intensivao.html";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(endereco), 0);
 }
 
 function voltarInicio() {
