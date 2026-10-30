@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0b3d91" />
-  <title>Avaliação Matemática 7º Ano</title>
+  <title>Avaliação de Matemática — 6º e 7º Ano</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
@@ -151,6 +151,17 @@
       margin-top: 6px;
     }
 
+    .series-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .series-options .btn { margin-top: 0; }
+    .series-options .btn.selecionada { background: var(--azul); color: white; }
+    .lista-aviso { color: #64748b; font-size: 0.85rem; margin: 8px 0 0; }
+
     .hidden { display: none !important; }
 
     table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
@@ -181,7 +192,7 @@
   <!-- HEADER -->
   <div class="header">
     <h1 id="tituloHeader">Avaliação de Matemática</h1>
-    <p id="subtituloHeader">7º Ano • 12 questões</p>
+    <p id="subtituloHeader">6º e 7º Ano • 12 questões</p>
   </div>
 
   <div class="container">
@@ -205,10 +216,17 @@
     <!-- ========== MODO ALUNO ========== -->
     <div id="telaAluno" class="hidden">
       <div class="card">
+        <label><strong>Sua série</strong></label>
+        <div class="series-options" role="group" aria-label="Escolha sua série">
+          <button class="btn btn-outline" id="serieAluno6" type="button" aria-pressed="false" onclick="selecionarSerieAluno(6)">6º Ano</button>
+          <button class="btn btn-outline" id="serieAluno7" type="button" aria-pressed="false" onclick="selecionarSerieAluno(7)">7º Ano</button>
+        </div>
+
         <label><strong>Seu nome</strong></label>
-        <select id="selectAluno">
-          <option value="">Selecione seu nome...</option>
+        <select id="selectAluno" disabled>
+          <option value="">Escolha sua série primeiro...</option>
         </select>
+        <p id="avisoListaAluno" class="lista-aviso hidden" aria-live="polite"></p>
 
         <div class="progresso">
           <div class="progresso-bar" id="barraProgresso" style="width:0%"></div>
@@ -232,8 +250,17 @@
         <span class="badge">MODO PROFESSOR</span>
         <h2 style="margin:10px 0 6px">Correção Rápida</h2>
 
+        <label>Série</label>
+        <div class="series-options" role="group" aria-label="Escolha a série do aluno">
+          <button class="btn btn-outline" id="serieProf6" type="button" aria-pressed="false" onclick="selecionarSerieProfessor(6)">6º Ano</button>
+          <button class="btn btn-outline" id="serieProf7" type="button" aria-pressed="false" onclick="selecionarSerieProfessor(7)">7º Ano</button>
+        </div>
+
         <label>Aluno</label>
-        <select id="selectAlunoProf"></select>
+        <select id="selectAlunoProf" disabled>
+          <option value="">Escolha a série primeiro...</option>
+        </select>
+        <p id="avisoListaProf" class="lista-aviso hidden" aria-live="polite"></p>
 
         <label style="margin-top:14px">Código da Prova (QR)</label>
         <input type="text" id="inputQR" value="PROVA-M0702-B12-2026" />
@@ -278,7 +305,7 @@
     </div>
 
     <div class="footer">
-      Avaliação Contínua 2026 • Matemática 7º Ano<br>
+      Avaliação Contínua 2026 • Matemática • 6º e 7º Ano<br>
       Feito para uso em sala de aula
     </div>
   </div>
@@ -359,6 +386,9 @@ const GABARITO = {
 let respostasAluno = {};
 let alunoAtual = null;
 let modo = null;
+let alunosPorSerie = {"6": {alunos: []}, "7": {alunos: []}};
+let serieAlunoAtual = null;
+let serieProfessorAtual = null;
 
 // ======================================================
 // INICIALIZAÇÃO
@@ -366,38 +396,91 @@ let modo = null;
 async function carregarAlunos() {
   try {
     const resp = await fetch('alunos.json');
+    if (!resp.ok) throw new Error(`Falha ao carregar alunos.json: HTTP ${resp.status}`);
     const data = await resp.json();
-    return data.alunos;
+    if (!data.turmas || !Array.isArray(data.turmas["6"]?.alunos) || !Array.isArray(data.turmas["7"]?.alunos)) {
+      throw new Error("O arquivo alunos.json não contém listas válidas para o 6º e 7º ano.");
+    }
+    return data.turmas;
   } catch (e) {
-    // fallback caso não encontre o json
-    return [
-      {id:"A01", nome:"Aluno 1", numero:1},
-      {id:"A02", nome:"Aluno 2", numero:2},
-      {id:"A03", nome:"Aluno 3", numero:3},
-      {id:"A04", nome:"Aluno 4", numero:4},
-      {id:"A05", nome:"Aluno 5", numero:5}
-    ];
+    console.error("Não foi possível carregar as listas de alunos.", e);
+    return {
+      "6": {alunos: Array.from({length: 21}, (_, i) => ({id: `6-${i + 1}`, nome: `Aluno ${i + 1}`, numero: i + 1}))},
+      "7": {alunos: []}
+    };
   }
 }
 
 window.onload = async () => {
-  const alunos = await carregarAlunos();
-  const selects = [document.getElementById("selectAluno"), document.getElementById("selectAlunoProf")];
-  
-  selects.forEach(sel => {
-    alunos.forEach(a => {
-      const opt = document.createElement("option");
-      opt.value = a.id;
-      opt.textContent = `${a.numero}. ${a.nome}`;
-      sel.appendChild(opt);
-    });
-  });
+  alunosPorSerie = await carregarAlunos();
 
   // Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
 };
+
+function atualizarBotoesSerie(prefixo, serie) {
+  [6, 7].forEach(n => {
+    const botao = document.getElementById(`${prefixo}${n}`);
+    const selecionado = String(n) === String(serie);
+    botao.classList.toggle("selecionada", selecionado);
+    botao.setAttribute("aria-pressed", String(selecionado));
+  });
+}
+
+function preencherSelectAlunos(serie, selectId, avisoId) {
+  const select = document.getElementById(selectId);
+  const aviso = document.getElementById(avisoId);
+  const alunos = alunosPorSerie[String(serie)]?.alunos || [];
+  select.innerHTML = "";
+
+  const opcaoInicial = document.createElement("option");
+  opcaoInicial.value = "";
+  opcaoInicial.textContent = alunos.length ? "Selecione seu nome..." : "Lista ainda não cadastrada";
+  select.appendChild(opcaoInicial);
+  aviso.classList.remove("hidden");
+
+  if (!alunos.length) {
+    select.disabled = true;
+    aviso.textContent = `A lista do ${serie}º ano será adicionada quando for enviada.`;
+    return;
+  }
+
+  alunos.forEach(aluno => {
+    const opcao = document.createElement("option");
+    opcao.value = aluno.id;
+    opcao.textContent = `${aluno.numero}. ${aluno.nome}`;
+    select.appendChild(opcao);
+  });
+
+  select.disabled = false;
+  aviso.textContent = "Os nomes estão ocultos na versão pública; selecione o número correspondente à chamada.";
+}
+
+function selecionarSerieAluno(serie) {
+  serieAlunoAtual = String(serie);
+  atualizarBotoesSerie("serieAluno", serie);
+  preencherSelectAlunos(serie, "selectAluno", "avisoListaAluno");
+}
+
+function selecionarSerieProfessor(serie) {
+  serieProfessorAtual = String(serie);
+  atualizarBotoesSerie("serieProf", serie);
+  preencherSelectAlunos(serie, "selectAlunoProf", "avisoListaProf");
+}
+
+function limparSelecaoSerie(prefixo, selectId, avisoId) {
+  [6, 7].forEach(serie => {
+    const botao = document.getElementById(`${prefixo}${serie}`);
+    botao.classList.remove("selecionada");
+    botao.setAttribute("aria-pressed", "false");
+  });
+  const select = document.getElementById(selectId);
+  select.innerHTML = '<option value="">Escolha sua série primeiro...</option>';
+  select.disabled = true;
+  document.getElementById(avisoId).classList.add("hidden");
+}
 
 // ======================================================
 // NAVEGAÇÃO
@@ -413,6 +496,10 @@ function voltarInicio() {
   document.getElementById("telaInicio").classList.remove("hidden");
   document.getElementById("tituloHeader").textContent = "Avaliação de Matemática";
   respostasAluno = {};
+  serieAlunoAtual = null;
+  serieProfessorAtual = null;
+  limparSelecaoSerie("serieAluno", "selectAluno", "avisoListaAluno");
+  limparSelecaoSerie("serieProf", "selectAlunoProf", "avisoListaProf");
 }
 
 // ======================================================
@@ -463,6 +550,7 @@ function selecionar(numQ, letra, elemento) {
 }
 
 function finalizarProvaAluno() {
+  if (!serieAlunoAtual) return alert("Selecione sua série primeiro!");
   const sel = document.getElementById("selectAluno");
   if (!sel.value) return alert("Selecione seu nome primeiro!");
 
@@ -470,7 +558,7 @@ function finalizarProvaAluno() {
     if (!confirm("Você respondeu poucas questões. Deseja entregar mesmo assim?")) return;
   }
 
-  alunoAtual = sel.options[sel.selectedIndex].text;
+  alunoAtual = `${serieAlunoAtual}º Ano • ${sel.options[sel.selectedIndex].text}`;
   mostrarResultado(respostasAluno, alunoAtual);
 }
 
@@ -484,6 +572,7 @@ function iniciarProfessor() {
 }
 
 function carregarCorrecaoProf() {
+  if (!serieProfessorAtual) return alert("Selecione a série do aluno");
   const qr = document.getElementById("inputQR").value.trim();
   if (qr !== "PROVA-M0702-B12-2026") {
     alert("Código QR inválido!");
@@ -493,7 +582,7 @@ function carregarCorrecaoProf() {
   const sel = document.getElementById("selectAlunoProf");
   if (!sel.value) return alert("Selecione o aluno");
 
-  alunoAtual = sel.options[sel.selectedIndex].text;
+  alunoAtual = `${serieProfessorAtual}º Ano • ${sel.options[sel.selectedIndex].text}`;
   document.getElementById("areaCorrecaoProf").classList.remove("hidden");
 
   // monta bolhas
